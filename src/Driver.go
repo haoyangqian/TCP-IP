@@ -84,6 +84,8 @@ func print_routingtable(table model.RoutingTable) {
 
 func main() {
 
+	IpPacket := model.MakeIpPacket()
+	fmt.Println(IpPacket.String())
 	// read link file
 	link_file := os.Args[1]
 	//fmt.Println(link_file)
