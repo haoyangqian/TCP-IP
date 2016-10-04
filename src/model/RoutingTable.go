@@ -5,19 +5,19 @@ package model
 // import "sync/atomic"
 
 type RoutingTable struct {
-	Routing_entries map[VirtualIp]RoutingEntry
+	RoutingEntries map[VirtualIp]RoutingEntry
 	//Table_lock      sync.Mutex
 }
 
 func (t *RoutingTable) PutEntry(entry RoutingEntry) {
-	t.Routing_entries[entry.GetDestIp()] = entry
+	t.RoutingEntries[entry.GetDestIp()] = entry
 }
 
 func (t *RoutingTable) GetAllEntries() []RoutingEntry {
-	return make([]RoutingEntry, len(t.Routing_entries))
+	return make([]RoutingEntry, len(t.RoutingEntries))
 }
 
 func MakeRoutingTable() RoutingTable {
 	Routing_entries := make(map[VirtualIp]RoutingEntry)
-	return RoutingTable{Routing_entries}
+	return RoutingTable{RoutingEntries}
 }
