@@ -18,8 +18,8 @@ func MakeIpPacket(message []byte,protocol int,src VirtualIp,dst VirtualIp) IpPac
 		TotalLen: 20 + len(message), 
 		TTL:      16,
 		Protocol: protocol, 
-		Dst:      net.IPv4(dst.A, dst.B, dst.C, dst.D),
-        Src:      net.IPv4(src.A, src.B, src.C, src.D),
+		Dst:      net.ParseIP(VirtualIp.Ip)
+        Src:      net.ParseIP(VirtualIp.Ip)
         Options:  []byte{}
 		// ID, Src and Checksum will be set for us by the kernel
 	}
