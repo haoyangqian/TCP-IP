@@ -7,10 +7,11 @@ import "strings"
 import "text/tabwriter"
 
 import "./model"
-import "./network"
 
-func read_lnx(filename string) []model.NodeInterface {
-	interfaces := make([]model.NodeInterface, 0)
+//import "./network"
+
+func read_lnx(filename string) map[model.VirtualIp]model.NodeInterface {
+	interfaces := make(map[model.VirtualIp]model.NodeInterface)
 	if file, err := os.Open(os.Args[1]); err == nil {
 
 		// make sure it gets closed
@@ -33,7 +34,7 @@ func read_lnx(filename string) []model.NodeInterface {
 				dest := model.VirtualIp{Ip: tokens[2]}
 
 				node_interface := model.NodeInterface{Id: id_counter, Src: src, Dest: dest, Enabled: true, Descriptor: descriptor}
-				interfaces = append(interfaces, node_interface)
+				interfaces[dest] = node_interface
 
 				id_counter += 1
 			}
@@ -48,24 +49,22 @@ func read_lnx(filename string) []model.NodeInterface {
 	return interfaces
 }
 
-func set_routingtable(interfaces []model.NodeInterface) model.RoutingTable {
+func set_routingtable(interfaces map[model.VirtualIp]model.NodeInterface) model.RoutingTable {
 	table := model.MakeRoutingTable()
-	for i := 0; i < len(interfaces); i++ {
-		entry := model.MakeRoutingEntry(interfaces[i].Src, interfaces[i].Src, interfaces[i].Src, 0)
+	for _, v := range interfaces {
+		entry := model.MakeRoutingEntry(v.Src, v.Src, v.Src, 0)
 		table.PutEntry(entry)
 	}
 	return table
 }
 
-func print_interfaces(interfaces []model.NodeInterface) {
+func print_interfaces(interfaces map[model.VirtualIp]model.NodeInterface) {
 	w := new(tabwriter.Writer)
 	// Format in tab-separated columns with a tab stop of 8.
 	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
 	fmt.Fprintf(w, "id\tdst\tsrc\tenabled\n")
-
-	for k := 0; k < len(interfaces); k++ {
-		i := interfaces[k]
-		fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", i.Id, i.Dest.Ip, i.Src.Ip, i.Enabled)
+	for _, v := range interfaces {
+		fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", v.Id, v.Dest.Ip, v.Src.Ip, v.Enabled)
 	}
 	w.Flush()
 }
