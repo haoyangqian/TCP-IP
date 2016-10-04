@@ -7,6 +7,7 @@ import "strings"
 import "text/tabwriter"
 
 import "./model"
+import "./network"
 
 func read_lnx(filename string) []model.NodeInterface {
 	interfaces := make([]model.NodeInterface, 0)
