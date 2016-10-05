@@ -6,7 +6,9 @@ import "bufio"
 import "strings"
 import "text/tabwriter"
 
-import "./model"
+import (
+	"./model"
+)
 
 //import "./network"
 
@@ -75,17 +77,20 @@ func print_routingtable(table model.RoutingTable) {
 	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
 	fmt.Fprintf(w, " \t\tdst\tsrc\tcost\n")
 
-	table_map := table.Routing_entries
+	table_map := table.RoutingEntries
 	for _, v := range table_map {
-		fmt.Fprintf(w, " \t\t%s\t%s\t%d\n", v.GetExitIP().Ip, v.GetExitIP().Ip, v.GetCost())
+		fmt.Fprintf(w, " \t\t%s\t%s\t%d\n", v.ExitIp.Ip, v.ExitIp.Ip, v.Cost)
 	}
 	w.Flush()
 }
 
 func main() {
+	IpPacket := model.MakeIpPacket([]byte("hello"), 0, model.VirtualIp{"192.168.0.5"}, model.VirtualIp{"192.168.0.6"})
 
-	IpPacket := model.MakeIpPacket()
-	fmt.Println(IpPacket.String())
+	buffer := IpPacket.ConvertToBuffer()
+	rPacket := model.ConvertToIpPacket(buffer)
+	fmt.Println(rPacket.IpPacketString())
+
 	// read link file
 	link_file := os.Args[1]
 	//fmt.Println(link_file)

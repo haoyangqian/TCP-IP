@@ -10,7 +10,7 @@ type RoutingTable struct {
 }
 
 func (t *RoutingTable) PutEntry(entry RoutingEntry) {
-	t.RoutingEntries[entry.GetDestIp()] = entry
+	t.RoutingEntries[entry.Dest] = entry
 }
 
 func (t *RoutingTable) GetAllEntries() []RoutingEntry {
@@ -18,6 +18,6 @@ func (t *RoutingTable) GetAllEntries() []RoutingEntry {
 }
 
 func MakeRoutingTable() RoutingTable {
-	Routing_entries := make(map[VirtualIp]RoutingEntry)
+	RoutingEntries := make(map[VirtualIp]RoutingEntry)
 	return RoutingTable{RoutingEntries}
 }
