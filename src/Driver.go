@@ -8,6 +8,8 @@ import "text/tabwriter"
 
 import (
 	"./model"
+	"./runner"
+	"sync"
 )
 
 //import "./network"
@@ -101,4 +103,11 @@ func main() {
 	table := set_routingtable(interfaces)
 
 	print_routingtable(table)
+
+	runner := runner.MakeNetworkRunner(table, interfaces)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go runner.Run()
+	wg.Wait()
 }

@@ -3,5 +3,5 @@ package network
 import "../model"
 
 type NetworkHandler interface {
-	handle(packet model.IpPacket)
+	Handle(packet model.IpPacket)
 }
