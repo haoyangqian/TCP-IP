@@ -8,11 +8,13 @@ import "text/tabwriter"
 
 import (
 	"./model"
-	"./runner"
-	"sync"
+	//"./runner"
 )
 
-//import "./network"
+import "./network"
+
+//global variable
+var service string
 
 func read_lnx(filename string) map[model.VirtualIp]model.NodeInterface {
 	interfaces := make(map[model.VirtualIp]model.NodeInterface)
@@ -31,7 +33,9 @@ func read_lnx(filename string) map[model.VirtualIp]model.NodeInterface {
 			tokens := strings.Split(line, " ")
 
 			if len(tokens) == 1 {
-				// self address:port pair, ignoring for now
+				service = tokens[0]
+				fmt.Printf("servicename: %s\n", service)
+
 			} else {
 				descriptor := tokens[0]
 				src := model.VirtualIp{Ip: tokens[1]}
@@ -87,7 +91,7 @@ func print_routingtable(table model.RoutingTable) {
 }
 
 func main() {
-	IpPacket := model.MakeIpPacket([]byte("hello"), 0, model.VirtualIp{"192.168.0.5"}, model.VirtualIp{"192.168.0.6"})
+	IpPacket := model.MakeIpPacket([]byte("hello"), 0, model.VirtualIp{"192.168.0.6"}, model.VirtualIp{"192.168.0.5"})
 
 	buffer := IpPacket.ConvertToBuffer()
 	rPacket := model.ConvertToIpPacket(buffer)
@@ -99,15 +103,15 @@ func main() {
 
 	interfaces := read_lnx(link_file)
 	print_interfaces(interfaces)
-
 	table := set_routingtable(interfaces)
-
 	print_routingtable(table)
 
-	runner := runner.MakeNetworkRunner(table, interfaces)
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go runner.Run()
-	wg.Wait()
+	linklayer := network.NewLinkAccessor(interfaces, service)
+	defer linklayer.CloseConnection()
+	linklayer.Send(IpPacket)
+	for {
+		// wait for UDP client to connect
+		ReceivePacket := linklayer.Receive()
+		fmt.Println(ReceivePacket.IpPacketString())
+	}
 }
