@@ -8,10 +8,9 @@ import "text/tabwriter"
 
 import (
 	"./model"
-	//"./runner"
+	"./runner"
+	"sync"
 )
-
-import "./network"
 
 //global variable
 var service string
@@ -106,12 +105,23 @@ func main() {
 	table := set_routingtable(interfaces)
 	print_routingtable(table)
 
-	linklayer := network.NewLinkAccessor(interfaces, service)
-	defer linklayer.CloseConnection()
-	linklayer.Send(IpPacket)
-	for {
-		// wait for UDP client to connect
-		ReceivePacket := linklayer.Receive()
-		fmt.Println(ReceivePacket.IpPacketString())
-	}
+	networkRunner := runner.MakeNetworkRunner(table, interfaces, service)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go networkRunner.Run()
+
+	networkAccessor := networkRunner.GetNetworkAccess()
+	networkAccessor.SendTestData("hello ha", model.VirtualIp{"192.168.0.6"}, model.VirtualIp{"192.168.0.5"})
+	// linklayer := network.NewLinkAccessor(interfaces, service)
+	// defer linklayer.CloseConnection()
+	// fmt.Println("im sending!")
+	// linklayer.Send(IpPacket)
+	// for {
+	// 	// wait for UDP client to connect
+	// 	ReceivePacket := linklayer.Receive()
+	// 	fmt.Println(ReceivePacket.IpPacketString())
+	// }
+	defer networkAccessor.CloseConnection()
+	wg.Wait()
 }

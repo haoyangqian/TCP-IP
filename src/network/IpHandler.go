@@ -12,5 +12,5 @@ func (handler IpHandler) Handle(packet model.IpPacket) {
 
 func printPacketInfo(packet model.IpPacket) {
 	fmt.Println("driver received packet:")
-	packet.IpPacketString()
+	fmt.Println(packet.IpPacketString())
 }
