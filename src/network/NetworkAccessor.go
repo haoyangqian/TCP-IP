@@ -25,16 +25,15 @@ func (accessor *NetworkAccessor) ReceiveAndHandle() {
 	//fmt.Println("network receive")
 	packet := accessor.linkAccessor.Receive()
 	//fmt.Println("network received")
-	dest := model.VirtualIp{packet.Ipheader.Dst.String()}
 
-	if !accessor.routingTable.HasEntry(dest) {
-		handleInvalidPacket(packet)
+	if accessor.ShouldDropPacket(packet) {
+		dropPacket(packet)
 		return
 	}
 
 	atDestination, err := accessor.isAtDestination(packet)
 	if err != nil {
-		handleInvalidPacket(packet)
+		dropPacket(packet)
 		return
 	}
 
@@ -43,7 +42,7 @@ func (accessor *NetworkAccessor) ReceiveAndHandle() {
 		if handler, ok := accessor.handlers[protocol]; ok {
 			handler.Handle(packet)
 		} else {
-			handleInvalidPacket(packet)
+			dropPacket(packet)
 			return
 		}
 	} else {
@@ -70,6 +69,8 @@ func (accessor *NetworkAccessor) ForwardPacket(packet model.IpPacket) {
 		println(err)
 		return
 	}
+
+	packet.Ipheader.TTL -= 1
 	accessor.linkAccessor.Send(packet, entry.ExitIp)
 }
 
@@ -86,11 +87,23 @@ func (accessor *NetworkAccessor) isAtDestination(packet model.IpPacket) (bool, e
 	return entry.Cost == 0, nil
 }
 
+func (accessor *NetworkAccessor) ShouldDropPacket(packet model.IpPacket) bool {
+	if !accessor.routingTable.HasEntry(model.VirtualIp{packet.Ipheader.Dst.String()}) {
+		return true
+	}
+
+	if packet.Ipheader.TTL == 0 {
+		return true
+	}
+
+	return false
+}
+
 func (accessor *NetworkAccessor) CloseConnection() {
 	accessor.linkAccessor.CloseConnection()
 }
 
-func handleInvalidPacket(packet model.IpPacket) {
+func dropPacket(packet model.IpPacket) {
 	// does nothing, simply drops the packet
 	fmt.Println("invalid packet received: " + packet.IpPacketString())
 }
