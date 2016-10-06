@@ -3,13 +3,13 @@ package model
 import "time"
 
 type RoutingEntry struct {
-	Dest        VirtualIp
-	Cost        int
-	ExitIp      VirtualIp
-	LearnedFrom VirtualIp
-	Ttl         *time.Timer
-	IsUpdated   bool
-	GcTimer     *time.Timer
+	Dest      VirtualIp
+	Cost      int
+	ExitIp    VirtualIp
+	NextHop   VirtualIp
+	Ttl       *time.Timer
+	IsUpdated bool
+	GcTimer   *time.Timer
 }
 
 func MakeRoutingEntry(dst VirtualIp, exitIp VirtualIp, learnedFrom VirtualIp, cost int) RoutingEntry {

@@ -41,9 +41,10 @@ func ReadLnx(filename string) map[model.VirtualIp]model.NodeInterface {
 				src := model.VirtualIp{Ip: tokens[1]}
 				dest := model.VirtualIp{Ip: tokens[2]}
 
-				node_interface := model.NodeInterface{Id: id_counter, Src: src, Dest: dest, Enabled: true, Descriptor: descriptor}
-				interfaces[src] = node_interface
-
+				node_interface := model.NodeInterface{Id: id_counter, Src: src, Dest: dest, Enabled: true, Descriptor: descriptor, ToSelf: false}
+				interfaces[dest] = node_interface
+				node_interface2 := model.NodeInterface{Id: id_counter, Src: src, Dest: src, Enabled: true, Descriptor: service, ToSelf: true}
+				interfaces[src] = node_interface2
 				id_counter += 1
 			}
 
@@ -72,7 +73,9 @@ func PrintInterfaces(interfaces map[model.VirtualIp]model.NodeInterface) {
 	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
 	fmt.Fprintf(w, "id\tdst\tsrc\tenabled\n")
 	for _, v := range interfaces {
-		fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", v.Id, v.Dest.Ip, v.Src.Ip, v.Enabled)
+		if v.ToSelf == false {
+			fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", v.Id, v.Dest.Ip, v.Src.Ip, v.Enabled)
+		}
 	}
 	w.Flush()
 }

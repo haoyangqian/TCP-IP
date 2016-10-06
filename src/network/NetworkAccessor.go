@@ -58,9 +58,9 @@ func (accessor *NetworkAccessor) SendMessage(message string, protocol int, dest 
 		return
 	}
 
-	packet := convertToIpPacket(message, protocol, entry.ExitIp, dest)
-	accessor.linkAccessor.Send(packet, entry.ExitIp)
-	//fmt.Println("network data sent")
+	packet := convertToIpPacket(message, protocol, entry.NextHop, dest)
+	accessor.linkAccessor.Send(packet, entry.NextHop)
+	//fmt.Println("network data sent,NextHop: " + entry.NextHop.Ip)
 }
 
 func (accessor *NetworkAccessor) ForwardPacket(packet model.IpPacket) {
@@ -69,9 +69,8 @@ func (accessor *NetworkAccessor) ForwardPacket(packet model.IpPacket) {
 		println(err)
 		return
 	}
-
 	packet.Ipheader.TTL -= 1
-	accessor.linkAccessor.Send(packet, entry.ExitIp)
+	accessor.linkAccessor.Send(packet, entry.NextHop)
 }
 
 func (accessor *NetworkAccessor) isAtDestination(packet model.IpPacket) (bool, error) {

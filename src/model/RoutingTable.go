@@ -22,7 +22,7 @@ func (t *RoutingTable) HasEntry(ip VirtualIp) bool {
 func (t *RoutingTable) GetEntry(vip VirtualIp) (RoutingEntry, error) {
 	var entry RoutingEntry
 	if !t.HasEntry(vip) {
-		return entry, errors.New("Invalid State: a entry not in the RoutingTable was requested " + vip.Ip)
+		return entry, errors.New("Invalid State: an entry not in the RoutingTable was requested " + vip.Ip)
 	}
 
 	return t.RoutingEntries[vip], nil

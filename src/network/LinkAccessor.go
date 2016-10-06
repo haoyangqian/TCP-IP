@@ -21,13 +21,13 @@ type LinkAccessor struct {
 
 /*
   function  :  send IpPacket to remote address
-  parameter :  IpPacket,exitIp
+  parameter :  IpPacket,nextHop
   return    :  NULL
 */
-func (accessor *LinkAccessor) Send(packet model.IpPacket, exitIp model.VirtualIp) {
+func (accessor *LinkAccessor) Send(packet model.IpPacket, nextHop model.VirtualIp) {
 	//fmt.Println("link layer Send()")
 	buffer := packet.ConvertToBuffer()
-	remoteService := accessor.InterfacesTable[exitIp].Descriptor
+	remoteService := accessor.InterfacesTable[nextHop].Descriptor
 	//fmt.Println("remoteAddr:" + remoteService)
 	if remoteService == "" {
 		fmt.Println("remoteService is empty")
