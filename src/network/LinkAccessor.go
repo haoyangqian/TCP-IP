@@ -21,14 +21,13 @@ type LinkAccessor struct {
 
 /*
   function  :  send IpPacket to remote address
-  parameter :  IpPacket
+  parameter :  IpPacket,exitIp
   return    :  NULL
 */
-func (accessor *LinkAccessor) Send(packet model.IpPacket) {
-	fmt.Println("link layer Send()")
+func (accessor *LinkAccessor) Send(packet model.IpPacket, exitIp model.VirtualIp) {
+	//fmt.Println("link layer Send()")
 	buffer := packet.ConvertToBuffer()
-	dstVip := model.VirtualIp{packet.Ipheader.Dst.String()}
-	remoteService := accessor.InterfacesTable[dstVip].Descriptor
+	remoteService := accessor.InterfacesTable[exitIp].Descriptor
 	//fmt.Println("remoteAddr:" + remoteService)
 	if remoteService == "" {
 		fmt.Println("remoteService is empty")
@@ -38,7 +37,7 @@ func (accessor *LinkAccessor) Send(packet model.IpPacket) {
 	//fmt.Println("localAddr:" + accessor.LocalService)
 	_, err = accessor.UdpSocket.WriteToUDP(buffer, remoteAddr)
 	util.CheckError(err)
-	fmt.Println("link layer sent")
+	//fmt.Println("link layer sent")
 }
 
 /*
@@ -47,13 +46,13 @@ func (accessor *LinkAccessor) Send(packet model.IpPacket) {
   return    :  IpPacket
 */
 func (accessor *LinkAccessor) Receive() model.IpPacket {
-	fmt.Println("link Receive()")
+	//fmt.Println("link Receive()")
 	buf := make([]byte, 1400)
-	n, addr, err := accessor.UdpSocket.ReadFromUDP(buf)
+	_, _, err := accessor.UdpSocket.ReadFromUDP(buf)
 	util.CheckError(err)
-	fmt.Println("Received ", string(buf[0:n]), " from ", addr)
+	//fmt.Println("Received ", string(buf[0:n]), " from ", addr)
 	ipPacket := model.ConvertToIpPacket(buf)
-	fmt.Println("link Received, returning packet")
+	//fmt.Println("link Received, returning packet")
 	return ipPacket
 }
 
@@ -65,9 +64,10 @@ func (accessor *LinkAccessor) Receive() model.IpPacket {
 func NewLinkAccessor(table map[model.VirtualIp]model.NodeInterface, service string) LinkAccessor {
 	udpAddr, err := net.ResolveUDPAddr("udp", service)
 	util.CheckError(err)
+	//fmt.Println("Listen UDP!!!!!" + service)
 	udpSocket, err := net.ListenUDP("udp", udpAddr)
 	util.CheckError(err)
-
+	//fmt.Println("HERE!!")
 	return LinkAccessor{table, service, udpSocket}
 }
 

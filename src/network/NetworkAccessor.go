@@ -22,9 +22,9 @@ func (accessor *NetworkAccessor) RegisterHandler(protocol int, handler NetworkHa
 }
 
 func (accessor *NetworkAccessor) ReceiveAndHandle() {
-	fmt.Println("network receive")
+	//fmt.Println("network receive")
 	packet := accessor.linkAccessor.Receive()
-	fmt.Println("network received")
+	//fmt.Println("network received")
 	dest := model.VirtualIp{packet.Ipheader.Dst.String()}
 
 	if !accessor.routingTable.HasEntry(dest) {
@@ -51,15 +51,26 @@ func (accessor *NetworkAccessor) ReceiveAndHandle() {
 	}
 }
 
-func (accessor *NetworkAccessor) SendTestData(message string, src model.VirtualIp, dest model.VirtualIp) {
-	fmt.Println("network send test data")
-	packet := convertToIpPacket(message, TEST_DATA_PROTOCOL, src, dest)
-	accessor.linkAccessor.Send(packet)
-	fmt.Println("network data sent")
+func (accessor *NetworkAccessor) SendMessage(message string, protocol int, dest model.VirtualIp) {
+	//fmt.Println("network send test data")
+	entry, err := accessor.routingTable.GetEntry(dest)
+	if err != nil {
+		println("Cannot reach this destination!")
+		return
+	}
+
+	packet := convertToIpPacket(message, protocol, entry.ExitIp, dest)
+	accessor.linkAccessor.Send(packet, entry.ExitIp)
+	//fmt.Println("network data sent")
 }
 
 func (accessor *NetworkAccessor) ForwardPacket(packet model.IpPacket) {
-	accessor.linkAccessor.Send(packet)
+	entry, err := accessor.routingTable.GetEntry(model.VirtualIp{packet.Ipheader.Dst.String()})
+	if err != nil {
+		println(err)
+		return
+	}
+	accessor.linkAccessor.Send(packet, entry.ExitIp)
 }
 
 func (accessor *NetworkAccessor) isAtDestination(packet model.IpPacket) (bool, error) {

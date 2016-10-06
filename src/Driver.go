@@ -9,13 +9,14 @@ import "text/tabwriter"
 import (
 	"./model"
 	"./runner"
+	"strconv"
 	"sync"
 )
 
 //global variable
 var service string
 
-func read_lnx(filename string) map[model.VirtualIp]model.NodeInterface {
+func ReadLnx(filename string) map[model.VirtualIp]model.NodeInterface {
 	interfaces := make(map[model.VirtualIp]model.NodeInterface)
 	if file, err := os.Open(os.Args[1]); err == nil {
 
@@ -41,7 +42,7 @@ func read_lnx(filename string) map[model.VirtualIp]model.NodeInterface {
 				dest := model.VirtualIp{Ip: tokens[2]}
 
 				node_interface := model.NodeInterface{Id: id_counter, Src: src, Dest: dest, Enabled: true, Descriptor: descriptor}
-				interfaces[dest] = node_interface
+				interfaces[src] = node_interface
 
 				id_counter += 1
 			}
@@ -56,7 +57,7 @@ func read_lnx(filename string) map[model.VirtualIp]model.NodeInterface {
 	return interfaces
 }
 
-func set_routingtable(interfaces map[model.VirtualIp]model.NodeInterface) model.RoutingTable {
+func SetRoutingtable(interfaces map[model.VirtualIp]model.NodeInterface) model.RoutingTable {
 	table := model.MakeRoutingTable()
 	for _, v := range interfaces {
 		entry := model.MakeRoutingEntry(v.Src, v.Src, v.Src, 0)
@@ -65,7 +66,7 @@ func set_routingtable(interfaces map[model.VirtualIp]model.NodeInterface) model.
 	return table
 }
 
-func print_interfaces(interfaces map[model.VirtualIp]model.NodeInterface) {
+func PrintInterfaces(interfaces map[model.VirtualIp]model.NodeInterface) {
 	w := new(tabwriter.Writer)
 	// Format in tab-separated columns with a tab stop of 8.
 	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
@@ -76,7 +77,7 @@ func print_interfaces(interfaces map[model.VirtualIp]model.NodeInterface) {
 	w.Flush()
 }
 
-func print_routingtable(table model.RoutingTable) {
+func PrintRoutingtable(table model.RoutingTable) {
 	w := new(tabwriter.Writer)
 	// Format in tab-separated columns with a tab stop of 8.
 	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
@@ -89,21 +90,30 @@ func print_routingtable(table model.RoutingTable) {
 	w.Flush()
 }
 
-func main() {
-	IpPacket := model.MakeIpPacket([]byte("hello"), 0, model.VirtualIp{"192.168.0.6"}, model.VirtualIp{"192.168.0.5"})
+func PrintHelp() {
+	println("Commands:")
+	println("up <id>                         - enable interface with id")
+	println("down <id>                       - disable interface with id")
+	println("send <dst_ip> <prot> <payload>  - send ip packet to <dst_ip> using prot <prot>")
+	println("interfaces                      - list interfaces")
+	println("routes                          - list routing table rows")
+	println("help                            - show this help")
+}
 
-	buffer := IpPacket.ConvertToBuffer()
-	rPacket := model.ConvertToIpPacket(buffer)
-	fmt.Println(rPacket.IpPacketString())
+func main() {
+	//IpPacket := model.MakeIpPacket([]byte("hello"), 0, model.VirtualIp{"192.168.0.6"}, model.VirtualIp{"192.168.0.5"})
+
+	//buffer := IpPacket.ConvertToBuffer()
+	//rPacket := model.ConvertToIpPacket(buffer)
+	//fmt.Println(rPacket.IpPacketString())
 
 	// read link file
 	link_file := os.Args[1]
 	//fmt.Println(link_file)
 
-	interfaces := read_lnx(link_file)
-	print_interfaces(interfaces)
-	table := set_routingtable(interfaces)
-	print_routingtable(table)
+	interfaces := ReadLnx(link_file)
+
+	table := SetRoutingtable(interfaces)
 
 	networkRunner := runner.MakeNetworkRunner(table, interfaces, service)
 
@@ -112,7 +122,7 @@ func main() {
 	go networkRunner.Run()
 
 	networkAccessor := networkRunner.GetNetworkAccess()
-	networkAccessor.SendTestData("hello ha", model.VirtualIp{"192.168.0.6"}, model.VirtualIp{"192.168.0.5"})
+
 	// linklayer := network.NewLinkAccessor(interfaces, service)
 	// defer linklayer.CloseConnection()
 	// fmt.Println("im sending!")
@@ -123,5 +133,38 @@ func main() {
 	// 	fmt.Println(ReceivePacket.IpPacketString())
 	// }
 	defer networkAccessor.CloseConnection()
+
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Print(">")
+	for scanner.Scan() {
+		line := scanner.Text()
+		tokens := strings.Split(line, " ")
+		command := strings.ToLower(tokens[0])
+		switch command {
+		case "up":
+		case "down":
+		case "send":
+			{
+				if len(tokens) != 4 {
+					fmt.Println("invalid args: send <dst_ip> <prot> <payload> ")
+					break
+				}
+				dstIp := tokens[1]
+				prot, _ := strconv.Atoi(tokens[2])
+				payload := tokens[3]
+				networkAccessor.SendMessage(payload, prot, model.VirtualIp{dstIp})
+			}
+		case "interfaces":
+			PrintInterfaces(interfaces)
+		case "routes":
+			PrintRoutingtable(table)
+		case "help":
+			PrintHelp()
+		default:
+			PrintHelp()
+
+		}
+		fmt.Print(">")
+	}
 	wg.Wait()
 }
