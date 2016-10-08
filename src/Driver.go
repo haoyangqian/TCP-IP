@@ -110,7 +110,12 @@ func main() {
 	//rPacket := model.ConvertToIpPacket(buffer)
 	//fmt.Println(rPacket.IpPacketString())
 
-	// read link file
+	ripinfo := model.RipInfo{1, 0, model.RipEntrie{}}
+	ripinfo.AddEntrie(RipEntrie{2, VirtualIp{"192.168.0.5"}})
+	ripinfo.AddEntrie(RipEntrie{3, VirtualIp{"192.168.0.6"}})
+	fmt.Println(ripinfo.String())
+
+	read link file
 	link_file := os.Args[1]
 	//fmt.Println(link_file)
 
