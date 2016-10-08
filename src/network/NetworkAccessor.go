@@ -72,7 +72,8 @@ func (accessor *NetworkAccessor) ForwardPacket(packet model.IpPacket, chToForwar
 		return
 	}
 	packet.Ipheader.TTL -= 1
-	packet.Ipheader.Checksum = model.IpPacket.IpSum(packet.Ipheader)
+	packet.Ipheader.Checksum = 0
+	packet.Ipheader.Checksum = model.IpSum(packet.Ipheader)
 
 	chToForward <- model.MakeSendPacketRequest(packet, entry.NextHop)
 }
@@ -91,7 +92,8 @@ func (accessor *NetworkAccessor) isAtDestination(packet model.IpPacket) (bool, e
 }
 
 func (accessor *NetworkAccessor) ShouldDropPacket(packet model.IpPacket) bool {
-	if checkSumMismatch(packet) {
+	if checksumMismatch(packet) {
+		fmt.Println("checksum mismatch!")
 		return true
 	}
 
@@ -107,10 +109,11 @@ func (accessor *NetworkAccessor) ShouldDropPacket(packet model.IpPacket) bool {
 }
 
 func checksumMismatch(packet model.IpPacket) bool {
-	receivedSum = packet.Ipheader.Checksum
+	receivedSum := packet.Ipheader.Checksum
 	packet.Ipheader.Checksum = 0
-
-	return receivedSum == model.IpPacket.IpSum(packet.Ipheader)
+	fmt.Println("recv sum:", receivedSum)
+	fmt.Println("cal sum:", model.IpSum(packet.Ipheader))
+	return receivedSum != model.IpSum(packet.Ipheader)
 }
 
 func dropPacket(packet model.IpPacket) {

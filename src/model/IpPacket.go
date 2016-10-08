@@ -2,6 +2,7 @@ package model
 
 import (
 	"../ipv4"
+	"encoding/binary"
 	"fmt"
 	"net"
 )
@@ -26,12 +27,12 @@ func MakeIpPacket(message []byte, protocol int, src VirtualIp, dst VirtualIp) Ip
 		Src:      net.ParseIP(src.Ip),
 		Options:  []byte{},
 	}
-	h.Checksum = IpSum(h)
+	h.Checksum = int(IpSum(h))
 	return IpPacket{h, message}
 }
 
 func (Ip *IpPacket) IpPacketString() string {
-	returnstring := fmt.Sprintf("  src_ip:   %v\n  dst_ip:   %v\n  body_len: %d\n  headr:\n    tos:    %d\n    id:     %d\n    prot:   %d\n  payload:  %s\n", Ip.Ipheader.Src, Ip.Ipheader.Dst, Ip.Ipheader.TotalLen-Ip.Ipheader.Len, Ip.Ipheader.TOS, Ip.Ipheader.ID, Ip.Ipheader.Protocol, string(Ip.Payload[:]))
+	returnstring := fmt.Sprintf("  src_ip:   %v\n  dst_ip:   %v\n  body_len: %d\n  headr:\n    tos:    %d\n    id:     %d\n    prot:   %d\n    checksum: %d\n payload:  %s\n", Ip.Ipheader.Src, Ip.Ipheader.Dst, Ip.Ipheader.TotalLen-Ip.Ipheader.Len, Ip.Ipheader.TOS, Ip.Ipheader.ID, Ip.Ipheader.Protocol, Ip.Ipheader.Checksum, string(Ip.Payload[:]))
 
 	return returnstring
 }
@@ -52,4 +53,20 @@ func ConvertToIpPacket(buffer []byte) IpPacket {
 	}
 	payload := buffer[20:]
 	return IpPacket{*rHeader, payload}
+}
+
+func IpSum(header ipv4.Header) int {
+	buffer, _ := header.Marshal()
+	n := len(buffer)
+	sum := uint32(0)
+	for i := 0; i < n-1; i += 2 {
+		sum += uint32(binary.BigEndian.Uint16(buffer[i : i+2]))
+	}
+	if n%2 == 1 {
+		sum += uint32(buffer[n])
+	}
+	sum = (sum >> 16) + (sum & 0xffff) /* add hi 16 to low 16 */
+	sum += (sum >> 16)                 /* add carry */
+	answer := uint16(0xffffffff ^ sum)
+	return int(answer)
 }
