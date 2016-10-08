@@ -4,19 +4,22 @@ package runner
 import "../model"
 import "../network"
 
-const TEST_DATA_PROTOCOL = 0
-const RIP_PROTOCOL = 200
-
 type NetworkRunner struct {
-	routingTable    model.RoutingTable
-	interfaces      map[model.VirtualIp]model.NodeInterface
 	networkAccessor network.NetworkAccessor
+
+	messageReceiver <-chan model.SendMessageRequest
+	chFromLink      <-chan model.IpPacket
+	chToLink        chan<- model.SendPacketRequest
 }
 
 func (runner *NetworkRunner) Run() {
-	defer runner.networkAccessor.CloseConnection()
 	for {
-		runner.networkAccessor.ReceiveAndHandle()
+		select {
+		case request := <-runner.messageReceiver:
+			runner.networkAccessor.Send(request, runner.chToLink)
+		case packet := <-runner.chFromLink:
+			runner.networkAccessor.ReceiveAndHandle(packet, runner.chToLink)
+		}
 	}
 }
 
@@ -24,12 +27,11 @@ func (runner *NetworkRunner) GetNetworkAccess() network.NetworkAccessor {
 	return runner.networkAccessor
 }
 
-func MakeNetworkRunner(table model.RoutingTable, interfaces map[model.VirtualIp]model.NodeInterface, service string) NetworkRunner {
-	ipHandler := network.IpHandler{}
-	linkAccessor := network.NewLinkAccessor(interfaces, service)
+func MakeNetworkRunner(
+	networkAccessor network.NetworkAccessor,
+	messageReceiver <-chan model.SendMessageRequest,
+	chFromLink <-chan model.IpPacket,
+	chToLink chan<- model.SendPacketRequest) NetworkRunner {
 
-	networkAccessor := network.NewNetworkAccessor(linkAccessor, table)
-	networkAccessor.RegisterHandler(TEST_DATA_PROTOCOL, ipHandler)
-
-	return NetworkRunner{table, interfaces, networkAccessor}
+	return NetworkRunner{networkAccessor, messageReceiver, chFromLink, chToLink}
 }

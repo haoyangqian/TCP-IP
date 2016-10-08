@@ -21,10 +21,13 @@ type LinkAccessor struct {
 
 /*
   function  :  send IpPacket to remote address
-  parameter :  IpPacket,nextHop
+  parameter :  SendPacketRequest
   return    :  NULL
 */
-func (accessor *LinkAccessor) Send(packet model.IpPacket, nextHop model.VirtualIp) {
+func (accessor *LinkAccessor) Send(request model.SendPacketRequest) {
+	packet := request.Packet()
+	nextHop := request.Dest()
+
 	//fmt.Println("link layer Send()")
 	buffer := packet.ConvertToBuffer()
 	remoteService := accessor.InterfacesTable[nextHop].Descriptor
@@ -47,12 +50,14 @@ func (accessor *LinkAccessor) Send(packet model.IpPacket, nextHop model.VirtualI
 */
 func (accessor *LinkAccessor) Receive() model.IpPacket {
 	//fmt.Println("link Receive()")
+	// TODO: change 1400 to MTU
 	buf := make([]byte, 1400)
 	_, _, err := accessor.UdpSocket.ReadFromUDP(buf)
 	util.CheckError(err)
 	//fmt.Println("Received ", string(buf[0:n]), " from ", addr)
 	ipPacket := model.ConvertToIpPacket(buf)
 	//fmt.Println("link Received, returning packet")
+
 	return ipPacket
 }
 

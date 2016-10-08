@@ -7,8 +7,8 @@ import "strings"
 import "text/tabwriter"
 
 import (
+	"./factory"
 	"./model"
-	"./runner"
 	"strconv"
 	"sync"
 )
@@ -118,13 +118,20 @@ func main() {
 
 	table := SetRoutingtable(interfaces)
 
-	networkRunner := runner.MakeNetworkRunner(table, interfaces, service)
+	factory := factory.InitializeResourceFactory(table, interfaces, service)
+
+	networkAccessor := factory.NetworkAccessor()
+	netToLinkChannel := factory.NetToLinkChannel()
+
+	linkReceiveRunner := factory.LinkReceiveRunner()
+	linkSendRunner := factory.LinkSendRunner()
+	networkRunner := factory.NetworkRunner()
 
 	var wg sync.WaitGroup
-	wg.Add(1)
+	wg.Add(3)
 	go networkRunner.Run()
-
-	networkAccessor := networkRunner.GetNetworkAccess()
+	go linkSendRunner.Run()
+	go linkReceiveRunner.Run()
 
 	// linklayer := network.NewLinkAccessor(interfaces, service)
 	// defer linklayer.CloseConnection()
@@ -135,7 +142,6 @@ func main() {
 	// 	ReceivePacket := linklayer.Receive()
 	// 	fmt.Println(ReceivePacket.IpPacketString())
 	// }
-	defer networkAccessor.CloseConnection()
 
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Print(">")
@@ -155,7 +161,9 @@ func main() {
 				dstIp := tokens[1]
 				prot, _ := strconv.Atoi(tokens[2])
 				payload := tokens[3]
-				networkAccessor.SendMessage(payload, prot, model.VirtualIp{dstIp})
+
+				request := model.MakeSendMessageRequest([]byte(payload), prot, model.VirtualIp{dstIp})
+				networkAccessor.Send(request, netToLinkChannel)
 			}
 		case "interfaces":
 			PrintInterfaces(interfaces)

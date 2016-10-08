@@ -3,27 +3,22 @@ package network
 import "../model"
 import "fmt"
 
-const TEST_DATA_PROTOCOL = 0
-const RIP_PROTOCOL = 200
-
 type NetworkAccessor struct {
-	linkAccessor LinkAccessor
 	routingTable model.RoutingTable
 	handlers     map[int]NetworkHandler
 }
 
-func NewNetworkAccessor(linkAccessor LinkAccessor, routingTable model.RoutingTable) NetworkAccessor {
+func NewNetworkAccessor(routingTable model.RoutingTable) NetworkAccessor {
 	handlers := make(map[int]NetworkHandler)
-	return NetworkAccessor{linkAccessor, routingTable, handlers}
+	return NetworkAccessor{routingTable, handlers}
 }
 
 func (accessor *NetworkAccessor) RegisterHandler(protocol int, handler NetworkHandler) {
 	accessor.handlers[protocol] = handler
 }
 
-func (accessor *NetworkAccessor) ReceiveAndHandle() {
+func (accessor *NetworkAccessor) ReceiveAndHandle(packet model.IpPacket, chToForward chan<- model.SendPacketRequest) {
 	//fmt.Println("network receive")
-	packet := accessor.linkAccessor.Receive()
 	//fmt.Println("network received")
 
 	if accessor.ShouldDropPacket(packet) {
@@ -37,40 +32,49 @@ func (accessor *NetworkAccessor) ReceiveAndHandle() {
 		return
 	}
 
-	if atDestination {
-		protocol := packet.Ipheader.Protocol
-		if handler, ok := accessor.handlers[protocol]; ok {
-			handler.Handle(packet)
-		} else {
-			dropPacket(packet)
-			return
-		}
+	if !atDestination {
+		accessor.ForwardPacket(packet, chToForward)
+		return
+	}
+
+	protocol := packet.Ipheader.Protocol
+	if handler, ok := accessor.handlers[protocol]; ok {
+		handler.Handle(packet)
 	} else {
-		accessor.ForwardPacket(packet)
+		dropPacket(packet)
+		return
 	}
 }
 
-func (accessor *NetworkAccessor) SendMessage(message string, protocol int, dest model.VirtualIp) {
+func (accessor *NetworkAccessor) Send(request model.SendMessageRequest, chToLink chan<- model.SendPacketRequest) {
 	//fmt.Println("network send test data")
+	message := request.Message()
+	protocol := request.Protocol()
+	dest := request.Dest()
+
 	entry, err := accessor.routingTable.GetEntry(dest)
 	if err != nil {
-		println("Cannot reach this destination!")
+		fmt.Println(request)
+		fmt.Println("Cannot reach this destination!")
 		return
 	}
 
 	packet := convertToIpPacket(message, protocol, entry.NextHop, dest)
-	accessor.linkAccessor.Send(packet, entry.NextHop)
+
 	//fmt.Println("network data sent,NextHop: " + entry.NextHop.Ip)
+	chToLink <- model.MakeSendPacketRequest(packet, entry.NextHop)
 }
 
-func (accessor *NetworkAccessor) ForwardPacket(packet model.IpPacket) {
+func (accessor *NetworkAccessor) ForwardPacket(packet model.IpPacket, chToForward chan<- model.SendPacketRequest) {
 	entry, err := accessor.routingTable.GetEntry(model.VirtualIp{packet.Ipheader.Dst.String()})
 	if err != nil {
 		println(err)
 		return
 	}
 	packet.Ipheader.TTL -= 1
-	accessor.linkAccessor.Send(packet, entry.NextHop)
+
+	// TODO: recalculate IP header checksum here
+	chToForward <- model.MakeSendPacketRequest(packet, entry.NextHop)
 }
 
 func (accessor *NetworkAccessor) isAtDestination(packet model.IpPacket) (bool, error) {
@@ -87,19 +91,15 @@ func (accessor *NetworkAccessor) isAtDestination(packet model.IpPacket) (bool, e
 }
 
 func (accessor *NetworkAccessor) ShouldDropPacket(packet model.IpPacket) bool {
+	if packet.Ipheader.TTL < 0 {
+		return true
+	}
+
 	if !accessor.routingTable.HasEntry(model.VirtualIp{packet.Ipheader.Dst.String()}) {
 		return true
 	}
 
-	if packet.Ipheader.TTL == 0 {
-		return true
-	}
-
 	return false
-}
-
-func (accessor *NetworkAccessor) CloseConnection() {
-	accessor.linkAccessor.CloseConnection()
 }
 
 func dropPacket(packet model.IpPacket) {
@@ -107,11 +107,10 @@ func dropPacket(packet model.IpPacket) {
 	fmt.Println("invalid packet received: " + packet.IpPacketString())
 }
 
-func convertToIpPacket(message string, protocol int, src model.VirtualIp, dest model.VirtualIp) model.IpPacket {
-	payload := []byte(message)
-	return model.MakeIpPacket(payload, protocol, src, dest)
+func convertToIpPacket(message []byte, protocol int, src model.VirtualIp, dest model.VirtualIp) model.IpPacket {
+	return model.MakeIpPacket(message, protocol, src, dest)
 }
 
 // func (accessor *NetworkLayerAccessor) SendRipData(message model.RipMessage, dest model.VirtualIp) {
 //     // to be implemented
-// }
+// }=
