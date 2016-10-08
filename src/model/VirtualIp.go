@@ -13,9 +13,9 @@ func MakeVirtualIp(ip string) VirtualIp {
 }
 
 func (vip *VirtualIp) Vip2Int() []byte {
-	return net.ParseIP(Ip).To4()
+	return net.ParseIP(vip.Ip).To4()
 }
 
 func Int2Vip(vip net.IP) VirtualIp {
-	return VirtualIp{vip.To16().String()}
+	return VirtualIp{vip.String()}
 }

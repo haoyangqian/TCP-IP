@@ -9,6 +9,7 @@ import "text/tabwriter"
 import (
 	"./factory"
 	"./model"
+	//"./util"
 	"strconv"
 	"sync"
 )
@@ -110,12 +111,6 @@ func main() {
 	//rPacket := model.ConvertToIpPacket(buffer)
 	//fmt.Println(rPacket.IpPacketString())
 
-	ripinfo := model.RipInfo{1, 0, model.RipEntrie{}}
-	ripinfo.AddEntrie(RipEntrie{2, VirtualIp{"192.168.0.5"}})
-	ripinfo.AddEntrie(RipEntrie{3, VirtualIp{"192.168.0.6"}})
-	fmt.Println(ripinfo.String())
-
-	read link file
 	link_file := os.Args[1]
 	//fmt.Println(link_file)
 
@@ -123,10 +118,16 @@ func main() {
 
 	table := SetRoutingtable(interfaces)
 
-	factory := factory.InitializeResourceFactory(table, interfaces, service)
+	// ripinfo, err := model.RoutingTable2RipInfo(table, 2)
+	// util.CheckError(err)
+	// fmt.Println(ripinfo.String())
+	// b, err := ripinfo.Marshal()
+	// util.CheckError(err)
+	// returnrip, err := model.UnmarshalForInfo(b)
+	// util.CheckError(err)
+	// fmt.Println(returnrip.String())
 
-	networkAccessor := factory.NetworkAccessor()
-	netToLinkChannel := factory.NetToLinkChannel()
+	factory := factory.InitializeResourceFactory(table, interfaces, service)
 
 	linkReceiveRunner := factory.LinkReceiveRunner()
 	linkSendRunner := factory.LinkSendRunner()
@@ -168,7 +169,7 @@ func main() {
 				payload := tokens[3]
 
 				request := model.MakeSendMessageRequest([]byte(payload), prot, model.VirtualIp{dstIp})
-				networkAccessor.Send(request, netToLinkChannel)
+				factory.MessageChannel() <- request
 			}
 		case "interfaces":
 			PrintInterfaces(interfaces)

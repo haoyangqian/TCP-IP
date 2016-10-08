@@ -28,7 +28,7 @@ func MakeIpPacket(message []byte, protocol int, src VirtualIp, dst VirtualIp) Ip
 }
 
 func (Ip *IpPacket) IpPacketString() string {
-	returnstring := fmt.Sprintf("  src_ip:%v\n  dst_ip:%v\n  body_len:%d\n  headr:\n    tos: %d\n    id:  %d\n    prot:%d\n  payload:%s\n", Ip.Ipheader.Src, Ip.Ipheader.Dst, Ip.Ipheader.TotalLen-Ip.Ipheader.Len, Ip.Ipheader.TOS, Ip.Ipheader.ID, Ip.Ipheader.Protocol, string(Ip.Payload[:]))
+	returnstring := fmt.Sprintf("  src_ip:   %v\n  dst_ip:   %v\n  body_len: %d\n  headr:\n    tos:    %d\n    id:     %d\n    prot:   %d\n  payload:  %s\n", Ip.Ipheader.Src, Ip.Ipheader.Dst, Ip.Ipheader.TotalLen-Ip.Ipheader.Len, Ip.Ipheader.TOS, Ip.Ipheader.ID, Ip.Ipheader.Protocol, string(Ip.Payload[:]))
 
 	return returnstring
 }

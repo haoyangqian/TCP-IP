@@ -59,7 +59,7 @@ func (accessor *NetworkAccessor) Send(request model.SendMessageRequest, chToLink
 		return
 	}
 
-	packet := convertToIpPacket(message, protocol, entry.NextHop, dest)
+	packet := convertToIpPacket(message, protocol, entry.NextHop, dest, entry.Cost == 0)
 
 	//fmt.Println("network data sent,NextHop: " + entry.NextHop.Ip)
 	chToLink <- model.MakeSendPacketRequest(packet, entry.NextHop)
@@ -107,7 +107,10 @@ func dropPacket(packet model.IpPacket) {
 	fmt.Println("invalid packet received: " + packet.IpPacketString())
 }
 
-func convertToIpPacket(message []byte, protocol int, src model.VirtualIp, dest model.VirtualIp) model.IpPacket {
+func convertToIpPacket(message []byte, protocol int, src model.VirtualIp, dest model.VirtualIp, isToSelf bool) model.IpPacket {
+	if isToSelf {
+		src = model.VirtualIp{"0.0.0.0"}
+	}
 	return model.MakeIpPacket(message, protocol, src, dest)
 }
 
