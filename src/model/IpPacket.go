@@ -13,17 +13,20 @@ type IpPacket struct {
 
 func MakeIpPacket(message []byte, protocol int, src VirtualIp, dst VirtualIp) IpPacket {
 	h := ipv4.Header{
-		Version:  4,
-		Len:      20,
-		TOS:      0,
-		TotalLen: 20 + len(message),
-		TTL:      16,
+		Version:  IP_VERSION,
+		Len:      IP_DEFAUTL_HEADER_LEN,
+		TOS:      IP_DEFAULT_TOS,
+		TotalLen: IP_DEFAUTL_HEADER_LEN + len(message),
+		// ID:       IP_DEFAULT_ID,
+		// Flags:    IP_DEFAULT_FLAGS,
+		// Offset:   IP_DEFAULT_OFFSET,
+		TTL:      IP_DEFAULT_TTL,
 		Protocol: protocol,
 		Dst:      net.ParseIP(dst.Ip),
 		Src:      net.ParseIP(src.Ip),
 		Options:  []byte{},
-		// ID, Src and Checksum will be set for us by the kernel
 	}
+	h.Checksum = IpSum(h)
 	return IpPacket{h, message}
 }
 
