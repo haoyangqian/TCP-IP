@@ -74,7 +74,7 @@ function :  Convert []byte to RipInfo,
 parameter:  []byte
 return   :  RipInfo
 */
-func UnmarshalForInfo(b []byte) (RipInfo, error) {
+func UnmarshalToInfo(b []byte) (RipInfo, error) {
 	if len(b) < 4 {
 		return RipInfo{}, errors.New("byte too short")
 	}

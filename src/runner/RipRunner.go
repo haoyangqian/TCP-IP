@@ -22,6 +22,7 @@ func (runner *RipRunner) Run() {
 	runner.restartTriggeredUpdateTimer()
 
 	for {
+
 		select {
 		case <-runner.broadcastTimer.C:
 			runner.ripHandler.BroadcastAllRoutes(runner.messageChannel)
