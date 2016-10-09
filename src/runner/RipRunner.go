@@ -4,7 +4,7 @@ package runner
 import "../model"
 import "time"
 
-//import "fmt"
+import "fmt"
 import "../network"
 
 type RipRunner struct {
@@ -27,8 +27,7 @@ func (runner *RipRunner) Run() {
 		case <-runner.broadcastTimer.C:
 			runner.ripHandler.BroadcastAllRoutes(runner.messageChannel)
 			runner.restartBroadcastTimer()
-			//fmt.Println("broadcast all")
-			//runner.ripHandler.UpdateRandom()
+			fmt.Println("broadcast all")
 
 		case <-runner.triggeredUpdateTimer.C:
 			runner.ripHandler.BroadcastUpdatedRoutes(runner.messageChannel)

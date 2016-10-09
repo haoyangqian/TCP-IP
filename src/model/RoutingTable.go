@@ -33,9 +33,19 @@ func (t *RoutingTable) PutEntry(entry *RoutingEntry) {
 }
 
 func (t *RoutingTable) GetAllEntries() []*RoutingEntry {
-	routingentries := make([]*RoutingEntry, len(t.RoutingEntries))
+	routingentries := make([]*RoutingEntry, 0)
 	for _, v := range t.RoutingEntries {
 		routingentries = append(routingentries, v)
+	}
+	return routingentries
+}
+
+func (t *RoutingTable) GetAllNeighbors() []*RoutingEntry {
+	routingentries := make([]*RoutingEntry, 0)
+	for _, v := range t.RoutingEntries {
+		if v.Cost == 1 {
+			routingentries = append(routingentries, v)
+		}
 	}
 	return routingentries
 }

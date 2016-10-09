@@ -2,7 +2,10 @@ package network
 
 import (
 	"../model"
+	"../util"
+	"errors"
 	"math"
+	//"fmt"
 )
 
 type RipHandler struct {
@@ -25,6 +28,34 @@ func (handler RipHandler) Handle(packet model.IpPacket) {
 		handler.handleRipRequest(ripInfo, receivedFromIp)
 	} else if command == 2 {
 		handler.handleRipResponse(ripInfo, selfIp, receivedFromIp)
+	}
+}
+
+/*
+function :  Convert routing table to RipInfo
+            if command = 1,which indicates a request,set num = 0
+            if command = 2,which indicates a response,iterate the routing table and add every entry to the RipInfo
+parameter:   []RoutingEntry,command(int)
+return   :   RipInfo
+*/
+
+func RoutingEntries2RipInfo(ripentries []*model.RoutingEntry, command int) (model.RipInfo, error) {
+	if command != 1 && command != 2 {
+		return model.RipInfo{}, errors.New("Wrong command type")
+	}
+
+	if command == 1 {
+		emtpyentries := make([]model.RipEntry, 0)
+		ripinfo := model.RipInfo{command, 0, emtpyentries}
+		return ripinfo, nil
+	}
+	if len(ripentries) == 0 {
+		return model.RipInfo{}, errors.New("Empty ripentries")
+	}
+	emtpyentries := make([]model.RipEntry, 0)
+	ripinfo := model.RipInfo{command, 0, emtpyentries}
+	for _, v := range ripentries {
+		ripinfo.AddEntry(model.RipEntry{v.Cost, v.Dest})
 	}
 }
 
@@ -62,10 +93,9 @@ func (handler *RipHandler) handleRipResponse(ripInfo model.RipInfo, selfIp model
 				handler.expireRoute(existing_entry)
 			}
 		} else {
-			new_entry := model.MakeRoutingEntry(ripEntry.Address, selfIp, ripEntry.Address, ripEntry.Cost + 1)
+			new_entry := model.MakeRoutingEntry(ripEntry.Address, selfIp, ripEntry.Address, ripEntry.Cost+1)
 			handler.routingTable.PutEntry(&new_entry)
 		}
-
 	}
 }
 
@@ -77,8 +107,15 @@ func (handler *RipHandler) expireRoute(entry *model.RoutingEntry) {
 
 }
 
-func (handler *RipHandler) BroadcastAllRoutes(messageChannel chan<- model.SendMessageRequest) []model.RipEntry {
-	return make([]model.RipEntry, 0)
+func (handler *RipHandler) BroadcastAllRoutes(messageChannel chan<- model.SendMessageRequest) {
+	ripinfo, err := RoutingEntries2RipInfo(handler.routingTable.GetAllEntries(), 2)
+	util.CheckError(err)
+	neighbors := handler.routingTable.GetAllNeighbors()
+	for _, v := range neighbors {
+		message, err := ripinfo.Marshal()
+		util.CheckError(err)
+		messageChannel <- model.MakeSendMessageRequest(message, model.RIP_PROTOCOL, v.Dest)
+	}
 }
 
 func (handler *RipHandler) BroadcastUpdatedRoutes(messageChannel chan<- model.SendMessageRequest) []model.RipEntry {
