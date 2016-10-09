@@ -39,7 +39,7 @@ parameter:   []RoutingEntry,command(int)
 return   :   RipInfo
 */
 
-func RoutingEntries2RipInfo(ripentries []*model.RoutingEntry, command int) (model.RipInfo, error) {
+func RoutingEntries2RipInfo(routingEntries []*model.RoutingEntry, command int) (model.RipInfo, error) {
 	if command != 1 && command != 2 {
 		return model.RipInfo{}, errors.New("Wrong command type")
 	}
@@ -49,14 +49,15 @@ func RoutingEntries2RipInfo(ripentries []*model.RoutingEntry, command int) (mode
 		ripinfo := model.RipInfo{command, 0, emtpyentries}
 		return ripinfo, nil
 	}
-	if len(ripentries) == 0 {
-		return model.RipInfo{}, errors.New("Empty ripentries")
+	if len(routingEntries) == 0 {
+		return model.RipInfo{}, errors.New("Empty routingEntries")
 	}
 	emtpyentries := make([]model.RipEntry, 0)
 	ripinfo := model.RipInfo{command, 0, emtpyentries}
-	for _, v := range ripentries {
+	for _, v := range routingEntries {
 		ripinfo.AddEntry(model.RipEntry{v.Cost, v.Dest})
 	}
+	return ripinfo, nil
 }
 
 func (handler *RipHandler) handleRipRequest(ripInfo model.RipInfo, requester model.VirtualIp) {
@@ -112,6 +113,8 @@ func (handler *RipHandler) BroadcastAllRoutes(messageChannel chan<- model.SendMe
 	util.CheckError(err)
 	neighbors := handler.routingTable.GetAllNeighbors()
 	for _, v := range neighbors {
+		//check learned from
+
 		message, err := ripinfo.Marshal()
 		util.CheckError(err)
 		messageChannel <- model.MakeSendMessageRequest(message, model.RIP_PROTOCOL, v.Dest)
