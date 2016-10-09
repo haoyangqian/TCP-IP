@@ -34,7 +34,7 @@ func InitializeResourceFactory(routingTable model.RoutingTable, interfaces map[m
 	linkToNetChannel := make(chan model.IpPacket)
 
 	ripHandler := network.MakeRipHandler(routingTable)
-
+	networkAccessor.RegisterHandler(model.RIP_PROTOCOL, ripHandler)
 	linkReceiveRunner := runner.MakeLinkReceiveRunner(linkAccessor, linkToNetChannel)
 	linkSendRunner := runner.MakeLinkSendRunner(linkAccessor, netToLinkChannel)
 	networkRunner := runner.MakeNetworkRunner(networkAccessor, messageChannel, linkToNetChannel, netToLinkChannel)

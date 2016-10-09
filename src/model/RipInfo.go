@@ -8,20 +8,15 @@ import (
 	"syscall"
 )
 
-type RipEntrie struct {
-	Cost    uint32
+type RipEntry struct {
+	Cost    int
 	Address VirtualIp
 }
 
 type RipInfo struct {
-	Command    uint32
-	NumEntries uint32
-	Entries    []RipEntrie
-}
-
-type RipMessage struct {
-	Cost    int
-	Address VirtualIp
+	Command    int
+	NumEntries int
+	Entries    []RipEntry
 }
 
 /*
@@ -30,40 +25,9 @@ parameter:   RipEntie
 return   :   void
 */
 
-func (r *RipInfo) AddEntrie(entry RipEntrie) {
+func (r *RipInfo) AddEntry(entry RipEntry) {
 	r.Entries = append(r.Entries, entry)
 	r.NumEntries += 1
-}
-
-/*
-function :  Convert routing table to RipInfo
-            if command = 1,which indicates a request,set num = 0
-            if command = 2,which indicates a response,iterate the routing table and add every entry to the RipInfo
-parameter:   routingTable,command(int)
-return   :   RipInfo
-*/
-
-func RoutingTable2RipInfo(rtable RoutingTable, command int) (RipInfo, error) {
-	if command != 1 && command != 2 {
-		return RipInfo{}, errors.New("Wrong command type")
-	}
-
-	if command == 1 {
-		ripentries := make([]RipEntrie, 0)
-		ripinfo := RipInfo{uint32(command), uint32(0), ripentries}
-		return ripinfo, nil
-	}
-
-	if len(rtable.RoutingEntries) == 0 {
-		return RipInfo{}, errors.New("Routing table has o entries")
-	}
-	ripentries := make([]RipEntrie, 0)
-	ripinfo := RipInfo{uint32(command), uint32(0), ripentries}
-	for _, v := range rtable.RoutingEntries {
-		ripinfo.AddEntrie(RipEntrie{uint32(v.Cost), v.Dest})
-	}
-
-	return ripinfo, nil
 }
 
 /*
@@ -74,7 +38,7 @@ return   :  String
 
 func (r *RipInfo) String() string {
 	returnstring := fmt.Sprintf("  command:%d\n  num:%d\n", r.Command, r.NumEntries)
-	for i := uint32(0); i < r.NumEntries; i++ {
+	for i := 0; i < r.NumEntries; i++ {
 		returnstring += fmt.Sprintf("    cost:%d  address:%v\n", r.Entries[i].Cost, r.Entries[i].Address)
 	}
 
@@ -94,8 +58,8 @@ func (r *RipInfo) Marshal() ([]byte, error) {
 	b := make([]byte, riplen)
 	binary.BigEndian.PutUint16(b[0:2], uint16(r.Command))
 	binary.BigEndian.PutUint16(b[2:4], uint16(r.NumEntries))
-	for i := uint32(0); i < r.NumEntries; i++ {
-		binary.BigEndian.PutUint32(b[4+8*i:8+8*i], r.Entries[i].Cost)
+	for i := 0; i < r.NumEntries; i++ {
+		binary.BigEndian.PutUint32(b[4+8*i:8+8*i], uint32(r.Entries[i].Cost))
 		vipbyte4 := r.Entries[i].Address.Vip2Int()
 		b[8+8*i] = vipbyte4[0]
 		b[9+8*i] = vipbyte4[1]
@@ -114,13 +78,13 @@ func UnmarshalForInfo(b []byte) (RipInfo, error) {
 	if len(b) < 4 {
 		return RipInfo{}, errors.New("byte too short")
 	}
-	command := uint32(binary.BigEndian.Uint16(b[0:2]))
-	num := uint32(binary.BigEndian.Uint16(b[2:4]))
-	entries := make([]RipEntrie, 0)
-	for i := uint32(0); i < num; i++ {
-		cost := uint32(binary.BigEndian.Uint32(b[4+8*i : 8+8*i]))
+	command := int(binary.BigEndian.Uint16(b[0:2]))
+	num := int(binary.BigEndian.Uint16(b[2:4]))
+	entries := make([]RipEntry, 0)
+	for i := 0; i < num; i++ {
+		cost := int(binary.BigEndian.Uint32(b[4+8*i : 8+8*i]))
 		address := Int2Vip(net.IPv4(b[8+8*i], b[9+8*i], b[10+8*i], b[11+8*i]))
-		entries = append(entries, RipEntrie{cost, address})
+		entries = append(entries, RipEntry{cost, address})
 	}
 	return RipInfo{command, num, entries}, nil
 }

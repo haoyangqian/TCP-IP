@@ -41,6 +41,7 @@ func (accessor *NetworkAccessor) ReceiveAndHandle(packet model.IpPacket, chToFor
 	if handler, ok := accessor.handlers[protocol]; ok {
 		handler.Handle(packet)
 	} else {
+		fmt.Println("no handler")
 		dropPacket(packet)
 		return
 	}
@@ -118,7 +119,7 @@ func checksumMismatch(packet model.IpPacket) bool {
 
 func dropPacket(packet model.IpPacket) {
 	// does nothing, simply drops the packet
-	fmt.Println("invalid packet received:\n" + packet.IpPacketString())
+	fmt.Println("invalid packet received:\n")
 }
 
 func convertToIpPacket(message []byte, protocol int, src model.VirtualIp, dest model.VirtualIp, isToSelf bool) model.IpPacket {

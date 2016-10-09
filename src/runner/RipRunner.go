@@ -3,7 +3,8 @@ package runner
 // import "fmt"
 import "../model"
 import "time"
-import "fmt"
+
+//import "fmt"
 import "../network"
 
 type RipRunner struct {
@@ -25,13 +26,13 @@ func (runner *RipRunner) Run() {
 		case <-runner.broadcastTimer.C:
 			runner.ripHandler.BroadcastAllRoutes(runner.messageChannel)
 			runner.restartBroadcastTimer()
-			fmt.Println("broadcast all")
-			runner.ripHandler.UpdateRandom()
-			
+			//fmt.Println("broadcast all")
+			//runner.ripHandler.UpdateRandom()
+
 		case <-runner.triggeredUpdateTimer.C:
 			runner.ripHandler.BroadcastUpdatedRoutes(runner.messageChannel)
 			runner.restartTriggeredUpdateTimer()
-			fmt.Println("broadcast updated")
+			//fmt.Println("broadcast updated")
 		}
 
 		runner.ripHandler.ExpireRoutes()
@@ -39,7 +40,7 @@ func (runner *RipRunner) Run() {
 }
 
 func (runner *RipRunner) restartBroadcastTimer() {
-	runner.broadcastTimer = time.NewTimer(model.RIP_BROADCAST_INTERVAL_MILLIS* time.Millisecond)
+	runner.broadcastTimer = time.NewTimer(model.RIP_BROADCAST_INTERVAL_MILLIS * time.Millisecond)
 }
 
 func (runner *RipRunner) restartTriggeredUpdateTimer() {
