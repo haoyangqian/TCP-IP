@@ -28,8 +28,6 @@ func ReadLnx(filename string) map[model.VirtualIp]*model.NodeInterface {
 		scanner := bufio.NewScanner(file)
 		id_counter := 0
 		for scanner.Scan() {
-			// fmt.Println(scanner.Text())
-
 			line := scanner.Text()
 			tokens := strings.Split(line, " ")
 
@@ -48,8 +46,6 @@ func ReadLnx(filename string) map[model.VirtualIp]*model.NodeInterface {
 				interfaces[src] = &node_interface2
 				id_counter += 1
 			}
-
-			// fmt.Println(tokens[0])
 		}
 
 	} else {

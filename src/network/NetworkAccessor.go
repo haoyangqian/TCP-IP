@@ -111,14 +111,14 @@ func (accessor *NetworkAccessor) ShouldDropPacket(packet model.IpPacket) bool {
 func checksumMismatch(packet model.IpPacket) bool {
 	receivedSum := packet.Ipheader.Checksum
 	packet.Ipheader.Checksum = 0
-	fmt.Println("recv sum:", receivedSum)
-	fmt.Println("cal sum:", model.IpSum(packet.Ipheader))
+	//fmt.Println("recv sum:", receivedSum)
+	//fmt.Println("cal sum:", model.IpSum(packet.Ipheader))
 	return receivedSum != model.IpSum(packet.Ipheader)
 }
 
 func dropPacket(packet model.IpPacket) {
 	// does nothing, simply drops the packet
-	fmt.Println("invalid packet received: " + packet.IpPacketString())
+	fmt.Println("invalid packet received:\n" + packet.IpPacketString())
 }
 
 func convertToIpPacket(message []byte, protocol int, src model.VirtualIp, dest model.VirtualIp, isToSelf bool) model.IpPacket {
