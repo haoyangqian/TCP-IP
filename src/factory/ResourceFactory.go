@@ -6,7 +6,7 @@ import "../runner"
 
 type ResourceFactory struct {
 	routingTable model.RoutingTable
-	interfaces   map[model.VirtualIp]model.NodeInterface
+	interfaces   map[model.VirtualIp]*model.NodeInterface
 
 	linkAccessor    network.LinkAccessor
 	networkAccessor network.NetworkAccessor
@@ -20,7 +20,7 @@ type ResourceFactory struct {
 	networkRunner     runner.NetworkRunner
 }
 
-func InitializeResourceFactory(routingTable model.RoutingTable, interfaces map[model.VirtualIp]model.NodeInterface, service string) ResourceFactory {
+func InitializeResourceFactory(routingTable model.RoutingTable, interfaces map[model.VirtualIp]*model.NodeInterface, service string) ResourceFactory {
 
 	ipHandler := network.IpHandler{}
 

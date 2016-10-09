@@ -14,7 +14,7 @@ struct for LinkLayer
     UdpSocket      :   UDP socket
 */
 type LinkAccessor struct {
-	InterfacesTable map[model.VirtualIp]model.NodeInterface
+	InterfacesTable map[model.VirtualIp]*model.NodeInterface
 	LocalService    string
 	UdpSocket       *net.UDPConn
 }
@@ -66,7 +66,7 @@ func (accessor *LinkAccessor) Receive() model.IpPacket {
   parameter :  table, service
   return    :  LinkAccessor
 */
-func NewLinkAccessor(table map[model.VirtualIp]model.NodeInterface, service string) LinkAccessor {
+func NewLinkAccessor(table map[model.VirtualIp]*model.NodeInterface, service string) LinkAccessor {
 	udpAddr, err := net.ResolveUDPAddr("udp", service)
 	util.CheckError(err)
 	//fmt.Println("Listen UDP!!!!!" + service)

@@ -17,8 +17,8 @@ import (
 //global variable
 var service string
 
-func ReadLnx(filename string) map[model.VirtualIp]model.NodeInterface {
-	interfaces := make(map[model.VirtualIp]model.NodeInterface)
+func ReadLnx(filename string) map[model.VirtualIp]*model.NodeInterface {
+	interfaces := make(map[model.VirtualIp]*model.NodeInterface)
 	if file, err := os.Open(os.Args[1]); err == nil {
 
 		// make sure it gets closed
@@ -43,9 +43,9 @@ func ReadLnx(filename string) map[model.VirtualIp]model.NodeInterface {
 				dest := model.VirtualIp{Ip: tokens[2]}
 
 				node_interface := model.NodeInterface{Id: id_counter, Src: src, Dest: dest, Enabled: true, Descriptor: descriptor, ToSelf: false}
-				interfaces[dest] = node_interface
+				interfaces[dest] = &node_interface
 				node_interface2 := model.NodeInterface{Id: id_counter, Src: src, Dest: src, Enabled: true, Descriptor: service, ToSelf: true}
-				interfaces[src] = node_interface2
+				interfaces[src] = &node_interface2
 				id_counter += 1
 			}
 
@@ -59,7 +59,7 @@ func ReadLnx(filename string) map[model.VirtualIp]model.NodeInterface {
 	return interfaces
 }
 
-func SetRoutingtable(interfaces map[model.VirtualIp]model.NodeInterface) model.RoutingTable {
+func SetRoutingtable(interfaces map[model.VirtualIp]*model.NodeInterface) model.RoutingTable {
 	table := model.MakeRoutingTable()
 	for _, v := range interfaces {
 		entry := model.MakeRoutingEntry(v.Src, v.Src, v.Src, 0)
@@ -68,7 +68,7 @@ func SetRoutingtable(interfaces map[model.VirtualIp]model.NodeInterface) model.R
 	return table
 }
 
-func PrintInterfaces(interfaces map[model.VirtualIp]model.NodeInterface) {
+func PrintInterfaces(interfaces map[model.VirtualIp]*model.NodeInterface) {
 	w := new(tabwriter.Writer)
 	// Format in tab-separated columns with a tab stop of 8.
 	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
