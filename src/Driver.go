@@ -63,7 +63,7 @@ func SetRoutingtable(interfaces map[model.VirtualIp]*model.NodeInterface) model.
 	table := model.MakeRoutingTable()
 	for _, v := range interfaces {
 		entry := model.MakeRoutingEntry(v.Src, v.Src, v.Src, 0)
-		table.PutEntry(entry)
+		table.PutEntry(&entry)
 	}
 	return table
 }
@@ -132,12 +132,14 @@ func main() {
 	linkReceiveRunner := factory.LinkReceiveRunner()
 	linkSendRunner := factory.LinkSendRunner()
 	networkRunner := factory.NetworkRunner()
+	ripRunner := factory.RipRunner()
 
 	var wg sync.WaitGroup
-	wg.Add(3)
+	wg.Add(4)
 	go networkRunner.Run()
 	go linkSendRunner.Run()
 	go linkReceiveRunner.Run()
+	go ripRunner.Run()
 
 	// linklayer := network.NewLinkAccessor(interfaces, service)
 	// defer linklayer.CloseConnection()

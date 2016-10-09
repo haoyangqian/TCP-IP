@@ -18,12 +18,12 @@ type ResourceFactory struct {
 	linkReceiveRunner runner.LinkReceiveRunner
 	linkSendRunner    runner.LinkSendRunner
 	networkRunner     runner.NetworkRunner
+	ripRunner         runner.RipRunner
 }
 
 func InitializeResourceFactory(routingTable model.RoutingTable, interfaces map[model.VirtualIp]*model.NodeInterface, service string) ResourceFactory {
 
 	ipHandler := network.IpHandler{}
-
 	networkAccessor := network.NewNetworkAccessor(routingTable)
 	networkAccessor.RegisterHandler(model.TEST_DATA_PROTOCOL, ipHandler)
 
@@ -33,9 +33,12 @@ func InitializeResourceFactory(routingTable model.RoutingTable, interfaces map[m
 	netToLinkChannel := make(chan model.SendPacketRequest)
 	linkToNetChannel := make(chan model.IpPacket)
 
+	ripHandler := network.MakeRipHandler(routingTable, messageChannel)
+
 	linkReceiveRunner := runner.MakeLinkReceiveRunner(linkAccessor, linkToNetChannel)
 	linkSendRunner := runner.MakeLinkSendRunner(linkAccessor, netToLinkChannel)
 	networkRunner := runner.MakeNetworkRunner(networkAccessor, messageChannel, linkToNetChannel, netToLinkChannel)
+	ripRunner := runner.MakeRipRunner(ripHandler, messageChannel)
 
 	factory := ResourceFactory{}
 	factory.routingTable = routingTable
@@ -48,6 +51,7 @@ func InitializeResourceFactory(routingTable model.RoutingTable, interfaces map[m
 	factory.linkReceiveRunner = linkReceiveRunner
 	factory.linkSendRunner = linkSendRunner
 	factory.networkRunner = networkRunner
+	factory.ripRunner = ripRunner
 	return factory
 }
 
@@ -74,9 +78,15 @@ func (factory *ResourceFactory) LinkToNetChannel() chan model.IpPacket {
 func (factory *ResourceFactory) LinkReceiveRunner() runner.LinkReceiveRunner {
 	return factory.linkReceiveRunner
 }
+
 func (factory *ResourceFactory) LinkSendRunner() runner.LinkSendRunner {
 	return factory.linkSendRunner
 }
+
 func (factory *ResourceFactory) NetworkRunner() runner.NetworkRunner {
 	return factory.networkRunner
+}
+
+func (factory *ResourceFactory) RipRunner() runner.RipRunner {
+	return factory.ripRunner
 }

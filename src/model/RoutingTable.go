@@ -28,12 +28,20 @@ func (t *RoutingTable) GetEntry(vip VirtualIp) (*RoutingEntry, error) {
 	return t.RoutingEntries[vip], nil
 }
 
-func (t *RoutingTable) PutEntry(entry RoutingEntry) {
-	t.RoutingEntries[entry.Dest] = &entry
+func (t *RoutingTable) PutEntry(entry *RoutingEntry) {
+	t.RoutingEntries[entry.Dest] = entry
 }
 
-func (t *RoutingTable) GetAllEntries() []RoutingEntry {
-	return make([]RoutingEntry, len(t.RoutingEntries))
+func (t *RoutingTable) GetAllEntries() []*RoutingEntry {
+	return make([]*RoutingEntry, len(t.RoutingEntries))
+}
+
+func (t *RoutingTable) GetUpdatedEntries() []*RoutingEntry {
+	return make([]*RoutingEntry, len(t.RoutingEntries))
+}
+
+func (t *RoutingTable) GetExpiredEntries() []*RoutingEntry {
+	return make([]*RoutingEntry, len(t.RoutingEntries))
 }
 
 func MakeRoutingTable() RoutingTable {

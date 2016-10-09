@@ -19,6 +19,11 @@ type RipInfo struct {
 	Entries    []RipEntrie
 }
 
+type RipMessage struct {
+	Cost    int
+	Address VirtualIp
+}
+
 /*
 function :   Add one entrie to RipInfo,and increment num of entries
 parameter:   RipEntie
