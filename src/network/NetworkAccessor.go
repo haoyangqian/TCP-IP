@@ -39,12 +39,13 @@ func (accessor *NetworkAccessor) ReceiveAndHandle(packet model.IpPacket, chToFor
 
 	protocol := packet.Ipheader.Protocol
 	if handler, ok := accessor.handlers[protocol]; ok {
-		handler.Handle(packet)
+		go handler.Handle(packet)
 	} else {
 		fmt.Println("no handler")
 		dropPacket(packet)
 		return
 	}
+	//fmt.Println("done handling")
 }
 
 func (accessor *NetworkAccessor) Send(request model.SendMessageRequest, chToLink chan<- model.SendPacketRequest) {

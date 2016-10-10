@@ -19,7 +19,7 @@ func (runner *RipRunner) Run() {
 
 	runner.restartBroadcastTimer()
 	runner.restartTriggeredUpdateTimer()
-
+	//runner.ripHandler.BroadcastRequest(runner.messageChannel)
 	for {
 
 		select {
@@ -32,6 +32,7 @@ func (runner *RipRunner) Run() {
 			runner.ripHandler.BroadcastUpdatedRoutes(runner.messageChannel)
 			runner.restartTriggeredUpdateTimer()
 			//fmt.Println("broadcast updated")
+
 		}
 
 		runner.ripHandler.ExpireRoutes()

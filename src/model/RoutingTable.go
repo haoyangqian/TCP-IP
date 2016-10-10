@@ -60,14 +60,6 @@ func (t *RoutingTable) GetNeighbor(vip VirtualIp) (VirtualIp, error) {
 	return t.Neighbors[vip], nil
 }
 
-func (t *RoutingTable) GetAllEntries() []*RoutingEntry {
-	routingentries := make([]*RoutingEntry, 0)
-	for _, v := range t.RoutingEntries {
-		routingentries = append(routingentries, v)
-	}
-	return routingentries
-}
-
 func (t *RoutingTable) GetAllNeighbors() []VirtualIp {
 	neighbors := make([]VirtualIp, 0)
 	for k, _ := range t.Neighbors {
@@ -76,8 +68,22 @@ func (t *RoutingTable) GetAllNeighbors() []VirtualIp {
 	return neighbors
 }
 
+func (t *RoutingTable) GetAllEntries() []*RoutingEntry {
+	routingentries := make([]*RoutingEntry, 0)
+	for _, v := range t.RoutingEntries {
+		routingentries = append(routingentries, v)
+	}
+	return routingentries
+}
+
 func (t *RoutingTable) GetUpdatedEntries() []*RoutingEntry {
-	return make([]*RoutingEntry, len(t.RoutingEntries))
+	routingentries := make([]*RoutingEntry, 0)
+	for _, v := range t.RoutingEntries {
+		if v.IsUpdated == true {
+			routingentries = append(routingentries, v)
+		}
+	}
+	return routingentries
 }
 
 func (t *RoutingTable) GetExpiredEntries() []*RoutingEntry {

@@ -69,7 +69,7 @@ func (entry *RoutingEntry) Expired() bool {
 
 func (entry *RoutingEntry) ShouldExpire() bool {
 	// retrun true if ttl is expired but the entry hasn't been marked as expired
-	if (entry.Cost == 0) {
+	if entry.Cost == 0 {
 		// a route to a local destination should never expire
 		return false
 	}
@@ -77,7 +77,7 @@ func (entry *RoutingEntry) ShouldExpire() bool {
 }
 
 func (entry *RoutingEntry) ShouldGC() bool {
-	if (entry.Cost == 0) {
+	if entry.Cost == 0 {
 		return false
 	}
 	return (time.Now().Unix() > entry.GcTimer) && entry.Expired()
