@@ -93,8 +93,8 @@ func (handler *RipHandler) handleRipResponse(ripInfo model.RipInfo, selfIp model
 			}
 
 			// expire routes if the new cost is inifinity and the existing route is not marked as expired
-			if new_cost >= model.RIP_INFINITY && existing_entry.Cost != model.RIP_INFINITY {
-				handler.expireRoute(existing_entry)
+			if new_cost >= model.RIP_INFINITY && !existing_entry.Expired() {
+				existing_entry.MarkAsExpired()
 			}
 		} else {
 			// func MakeRoutingEntry(dst VirtualIp, exitIp VirtualIp, nextHop VirtualIp, cost int) RoutingEntry
@@ -105,11 +105,7 @@ func (handler *RipHandler) handleRipResponse(ripInfo model.RipInfo, selfIp model
 }
 
 func (handler *RipHandler) validateRipInfo(ripInfo model.RipInfo) {
-
-}
-
-func (handler *RipHandler) expireRoute(entry *model.RoutingEntry) {
-
+	// TODO: do some basic validations here
 }
 
 func (handler *RipHandler) BroadcastAllRoutes(messageChannel chan<- model.SendMessageRequest) {
@@ -130,8 +126,18 @@ func (handler *RipHandler) BroadcastUpdatedRoutes(messageChannel chan<- model.Se
 	return make([]model.RipEntry, 0)
 }
 
-func (handler *RipHandler) ExpireRoutes() []model.RipEntry {
-	return make([]model.RipEntry, 0)
+func (handler *RipHandler) ExpireRoutes() {
+	routes := handler.routingTable.GetExpiredEntries()
+	for _, route := range routes {
+		if route.ShouldExpire() {
+			route.MarkAsExpired()
+			continue
+		}
+
+		if route.ShouldGC() {
+			handler.routingTable.DeleteEntry(route)
+		}
+	}
 }
 
 func (handler *RipHandler) UpdateRandom() {

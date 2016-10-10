@@ -41,6 +41,12 @@ func (t *RoutingTable) PutEntry(entry *RoutingEntry) {
 	t.RoutingEntries[entry.Dest] = entry
 }
 
+func (t *RoutingTable) DeleteEntry(entry *RoutingEntry) {
+	if t.HasEntry(entry.Dest) {
+		delete(t.RoutingEntries, entry.Dest)
+	}
+}
+
 func (t *RoutingTable) PutNeighbor(vip VirtualIp, inter VirtualIp) {
 	t.Neighbors[vip] = inter
 }
@@ -75,7 +81,13 @@ func (t *RoutingTable) GetUpdatedEntries() []*RoutingEntry {
 }
 
 func (t *RoutingTable) GetExpiredEntries() []*RoutingEntry {
-	return make([]*RoutingEntry, len(t.RoutingEntries))
+	expiredRoutes := make([]*RoutingEntry, 0)
+	for _, v := range t.RoutingEntries {
+		if v.Expired() {
+			expiredRoutes = append(expiredRoutes, v)
+		}
+	}
+	return expiredRoutes
 }
 
 func MakeRoutingTable() RoutingTable {
