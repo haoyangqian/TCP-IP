@@ -4,7 +4,8 @@ import (
 	"../model"
 	"../util"
 	"errors"
-	"fmt"
+	// "fmt"
+	// "time"
 	"math"
 )
 
@@ -88,12 +89,16 @@ func (handler *RipHandler) handleRipResponse(ripInfo model.RipInfo, selfIp model
 		
 			// update entry is new cost is cheaper
 			if new_cost < existing_entry.Cost {
-				fmt.Println("updaing existing entry")
+				// fmt.Printf("updaing existing entry, new cost is %d, existing cost is %d\n", new_cost, existing_entry.Cost)
 				existing_entry.Update(new_cost, receivedFromIp)
 			}
 
+			if new_cost == existing_entry.Cost {
+				existing_entry.ExtendTtl()
+			}
+
 			// expire routes if the new cost is inifinity and the existing route is not marked as expired
-			if new_cost >= model.RIP_INFINITY && !existing_entry.Expired() {
+			if new_cost >= model.RIP_INFINITY && !existing_entry.Expired() && existing_entry.NextHop == receivedFromIp {
 				existing_entry.MarkAsExpired()
 			}
 		} else {
@@ -130,12 +135,12 @@ func (handler *RipHandler) ExpireRoutes() {
 	routes := handler.routingTable.GetExpiredEntries()
 	for _, route := range routes {
 		if route.ShouldExpire() {
+			// fmt.Printf("route to %s should expire ttl left is %d, expired %t shouldGc %t\n", route.Dest, time.Now().Unix() - route.Ttl, route.Expired(), route.ShouldGC())
 			route.MarkAsExpired()
 			continue
 		}
 
 		if route.Expired() && route.ShouldGC() {
-			fmt.Println("shoudl GC this entry now!!!!!!")
 			handler.routingTable.DeleteEntry(route)
 		}
 	}

@@ -23,8 +23,15 @@ func (entry *RoutingEntry) Update(cost int, nextHop VirtualIp) {
 	entry.UpdateCost(cost)
 	entry.UpdateNextHop(nextHop)
 	entry.ResetTtl()
+	entry.SetExpired(false)
 	entry.ResetGcTimer()
 	entry.SetIsUpdated(true)
+}
+
+func (entry *RoutingEntry) ExtendTtl() {
+	entry.Ttl = time.Now().Unix() + RIP_ROUTING_ENTRY_TTL_SECONDS
+	entry.GcTimer = time.Now().Unix() + RIP_GC_TIMER_SECONDS
+	entry.HasExpired = false
 }
 
 func (entry *RoutingEntry) ResetTtl() {
@@ -66,18 +73,18 @@ func (entry *RoutingEntry) ShouldExpire() bool {
 		// a route to a local destination should never expire
 		return false
 	}
-	return time.Now().Unix() > entry.Ttl && !entry.Expired()
+	return (time.Now().Unix() > entry.Ttl) && !entry.Expired()
 }
 
 func (entry *RoutingEntry) ShouldGC() bool {
 	if (entry.Cost == 0) {
 		return false
 	}
-	return time.Now().Unix() > entry.GcTimer && entry.Expired()
+	return (time.Now().Unix() > entry.GcTimer) && entry.Expired()
 }
 
 func (entry *RoutingEntry) MarkAsExpired() {
-	entry.Cost = RIP_INFINITY
+	entry.UpdateCost(RIP_INFINITY)
 	entry.SetExpired(true)
 	entry.SetIsUpdated(true)
 }

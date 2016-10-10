@@ -5,7 +5,6 @@ import "errors"
 //import "sync"
 
 // import "sync/atomic"
-import "fmt"
 
 type RoutingTable struct {
 	RoutingEntries map[VirtualIp]*RoutingEntry
@@ -43,9 +42,7 @@ func (t *RoutingTable) PutEntry(entry *RoutingEntry) {
 }
 
 func (t *RoutingTable) DeleteEntry(entry *RoutingEntry) {
-	fmt.Println("DeleteEntry")
 	if t.HasEntry(entry.Dest) {
-		fmt.Println("Entry found, deleting...")
 		delete(t.RoutingEntries, entry.Dest)
 	}
 }
