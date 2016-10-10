@@ -5,6 +5,7 @@ import "errors"
 //import "sync"
 
 // import "sync/atomic"
+import "fmt"
 
 type RoutingTable struct {
 	RoutingEntries map[VirtualIp]*RoutingEntry
@@ -42,7 +43,9 @@ func (t *RoutingTable) PutEntry(entry *RoutingEntry) {
 }
 
 func (t *RoutingTable) DeleteEntry(entry *RoutingEntry) {
+	fmt.Println("DeleteEntry")
 	if t.HasEntry(entry.Dest) {
+		fmt.Println("Entry found, deleting...")
 		delete(t.RoutingEntries, entry.Dest)
 	}
 }
@@ -83,7 +86,7 @@ func (t *RoutingTable) GetUpdatedEntries() []*RoutingEntry {
 func (t *RoutingTable) GetExpiredEntries() []*RoutingEntry {
 	expiredRoutes := make([]*RoutingEntry, 0)
 	for _, v := range t.RoutingEntries {
-		if v.Expired() {
+		if v.ShouldExpire() || v.Expired() {
 			expiredRoutes = append(expiredRoutes, v)
 		}
 	}

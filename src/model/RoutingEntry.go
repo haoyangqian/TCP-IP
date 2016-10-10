@@ -62,11 +62,18 @@ func (entry *RoutingEntry) Expired() bool {
 
 func (entry *RoutingEntry) ShouldExpire() bool {
 	// retrun true if ttl is expired but the entry hasn't been marked as expired
-	return time.Now().UnixNano() > entry.Ttl && !entry.Expired()
+	if (entry.Cost == 0) {
+		// a route to a local destination should never expire
+		return false
+	}
+	return time.Now().Unix() > entry.Ttl && !entry.Expired()
 }
 
 func (entry *RoutingEntry) ShouldGC() bool {
-	return time.Now().UnixNano() > entry.GcTimer
+	if (entry.Cost == 0) {
+		return false
+	}
+	return time.Now().Unix() > entry.GcTimer && entry.Expired()
 }
 
 func (entry *RoutingEntry) MarkAsExpired() {

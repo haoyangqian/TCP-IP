@@ -79,13 +79,13 @@ func (handler *RipHandler) handleRipResponse(ripInfo model.RipInfo, selfIp model
 
 	for _, ripEntry := range ripInfo.Entries {
 
+		new_cost := int(math.Min(float64(ripEntry.Cost+1), float64(model.RIP_INFINITY)))
 		if handler.routingTable.HasEntry(ripEntry.Address) {
 			// possible update of existing route
 
 			// calculate new cost
 			existing_entry, _ := handler.routingTable.GetEntry(ripEntry.Address)
-			new_cost := int(math.Min(float64(ripEntry.Cost+1), float64(model.RIP_INFINITY)))
-
+		
 			// update entry is new cost is cheaper
 			if new_cost < existing_entry.Cost {
 				fmt.Println("updaing existing entry")
@@ -98,7 +98,7 @@ func (handler *RipHandler) handleRipResponse(ripInfo model.RipInfo, selfIp model
 			}
 		} else {
 			// func MakeRoutingEntry(dst VirtualIp, exitIp VirtualIp, nextHop VirtualIp, cost int) RoutingEntry
-			new_entry := model.MakeRoutingEntry(ripEntry.Address, selfIp, receivedFromIp, ripEntry.Cost+1)
+			new_entry := model.MakeRoutingEntry(ripEntry.Address, selfIp, receivedFromIp, new_cost)
 			handler.routingTable.PutEntry(&new_entry)
 		}
 	}
@@ -134,7 +134,8 @@ func (handler *RipHandler) ExpireRoutes() {
 			continue
 		}
 
-		if route.ShouldGC() {
+		if route.Expired() && route.ShouldGC() {
+			fmt.Println("shoudl GC this entry now!!!!!!")
 			handler.routingTable.DeleteEntry(route)
 		}
 	}

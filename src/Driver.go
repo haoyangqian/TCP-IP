@@ -12,6 +12,7 @@ import (
 	//"./util"
 	"strconv"
 	"sync"
+	"time"
 )
 
 //global variable
@@ -82,6 +83,17 @@ func PrintInterfaces(interfaces map[model.VirtualIp]*model.NodeInterface) {
 	w.Flush()
 }
 
+func PrintInterfacesall(interfaces map[model.VirtualIp]*model.NodeInterface) {
+	w := new(tabwriter.Writer)
+	// Format in tab-separated columns with a tab stop of 8.
+	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
+	fmt.Fprintf(w, "id\tdst\tsrc\tenabled\ttoself\n")
+	for _, v := range interfaces {
+		fmt.Fprintf(w, "%d\t%s\t%s\t%t\t%t\n", v.Id, v.Dest.Ip, v.Src.Ip, v.Enabled, v.ToSelf)
+	}
+	w.Flush()
+}
+
 func PrintRoutingtable(table model.RoutingTable) {
 	w := new(tabwriter.Writer)
 	// Format in tab-separated columns with a tab stop of 8.
@@ -99,11 +111,12 @@ func PrintRoutingtableall(table model.RoutingTable) {
 	w := new(tabwriter.Writer)
 	// Format in tab-separated columns with a tab stop of 8.
 	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
-	fmt.Fprintf(w, " \t\tdst\texit\tnexthop\tcost\n")
+	fmt.Fprintf(w, " \t\tdst\texit\tnexthop\tcost\texpired\tshould_expire\tshould_gc\n")
+	fmt.Printf("time now is %d\n", time.Now().Unix())
 
 	table_map := table.RoutingEntries
 	for _, v := range table_map {
-		fmt.Fprintf(w, " \t\t%s\t%s\t%s\t%d\n", v.Dest.Ip, v.ExitIp.Ip, v.NextHop, v.Cost)
+		fmt.Fprintf(w, " \t\t%s\t%s\t%s\t%d\t%t\t%t\t%t\n", v.Dest.Ip, v.ExitIp.Ip, v.NextHop, v.Cost, v.Expired(), v.ShouldExpire(), v.ShouldGC())
 	}
 	w.Flush()
 }
@@ -189,7 +202,11 @@ func main() {
 			}
 		case "interfaces":
 			PrintInterfaces(interfaces)
+		case "di":
+			PrintInterfacesall(interfaces)
 		case "routes":
+			PrintRoutingtable(table)
+		case "dr":
 			PrintRoutingtableall(table)
 		case "help":
 			PrintHelp()
