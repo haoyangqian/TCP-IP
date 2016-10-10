@@ -52,18 +52,31 @@ func (accessor *NetworkAccessor) Send(request model.SendMessageRequest, chToLink
 	message := request.Message()
 	protocol := request.Protocol()
 	dest := request.Dest()
+	var nextHop model.VirtualIp
+	var toSelf = false
+	var ExitIp model.VirtualIp
 
-	entry, err := accessor.routingTable.GetEntry(dest)
-	if err != nil {
+	if accessor.routingTable.HasEntry(dest) {
+		entry, _ := accessor.routingTable.GetEntry(dest)
+		nextHop = entry.NextHop
+		toSelf = entry.Cost == 0
+		ExitIp = entry.ExitIp
+		// fmt.Printf("table has entry, sending to %s via exitIp %s, through next hop %s", dest, ExitIp, nextHop)
+	} else if accessor.routingTable.HasNeighbor(dest) {
+		//fmt.Println("hop neighbor")
+		nextHop = dest
+		ExitIp, _ = accessor.routingTable.GetNeighbor(dest)
+		// fmt.Printf("neighbor found, sending to %s via exitIp %s, through next hop %s", dest, ExitIp, nextHop)
+	} else {
 		fmt.Println(request)
 		fmt.Println("Cannot reach this destination!")
 		return
 	}
 
-	packet := convertToIpPacket(message, protocol, entry.NextHop, dest, entry.Cost == 0)
+	packet := convertToIpPacket(message, protocol, ExitIp, dest, toSelf)
 
 	//fmt.Println("network data sent,NextHop: " + entry.NextHop.Ip)
-	chToLink <- model.MakeSendPacketRequest(packet, entry.NextHop)
+	chToLink <- model.MakeSendPacketRequest(packet, nextHop)
 }
 
 func (accessor *NetworkAccessor) ForwardPacket(packet model.IpPacket, chToForward chan<- model.SendPacketRequest) {

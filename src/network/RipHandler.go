@@ -4,8 +4,8 @@ import (
 	"../model"
 	"../util"
 	"errors"
+	"fmt"
 	"math"
-	//"fmt"
 )
 
 type RipHandler struct {
@@ -24,6 +24,8 @@ func (handler RipHandler) Handle(packet model.IpPacket) {
 	selfIp := model.VirtualIp{packet.Ipheader.Dst.String()}
 	receivedFromIp := model.VirtualIp{packet.Ipheader.Src.String()}
 
+	//fmt.Println("Selfip:", selfIp)
+	//fmt.Println("recevfrom:", receivedFromIp)
 	if command == 1 {
 		handler.handleRipRequest(ripInfo, receivedFromIp)
 	} else if command == 2 {
@@ -72,7 +74,7 @@ func (handler *RipHandler) handleRipRequest(ripInfo model.RipInfo, requester mod
 	// messageChannel <- packet
 }
 
-func (handler *RipHandler) handleRipResponse(ripInfo model.RipInfo, selfIp model.VirtualIp, replyToIp model.VirtualIp) {
+func (handler *RipHandler) handleRipResponse(ripInfo model.RipInfo, selfIp model.VirtualIp, receivedFromIp model.VirtualIp) {
 	handler.validateRipInfo(ripInfo)
 
 	for _, ripEntry := range ripInfo.Entries {
@@ -86,7 +88,8 @@ func (handler *RipHandler) handleRipResponse(ripInfo model.RipInfo, selfIp model
 
 			// update entry is new cost is cheaper
 			if new_cost < existing_entry.Cost {
-				existing_entry.Update(new_cost, ripEntry.Address)
+				fmt.Println("updaing existing entry")
+				existing_entry.Update(new_cost, receivedFromIp)
 			}
 
 			// expire routes if the new cost is inifinity and the existing route is not marked as expired
@@ -94,7 +97,8 @@ func (handler *RipHandler) handleRipResponse(ripInfo model.RipInfo, selfIp model
 				handler.expireRoute(existing_entry)
 			}
 		} else {
-			new_entry := model.MakeRoutingEntry(ripEntry.Address, selfIp, ripEntry.Address, ripEntry.Cost+1)
+			// func MakeRoutingEntry(dst VirtualIp, exitIp VirtualIp, nextHop VirtualIp, cost int) RoutingEntry
+			new_entry := model.MakeRoutingEntry(ripEntry.Address, selfIp, receivedFromIp, ripEntry.Cost+1)
 			handler.routingTable.PutEntry(&new_entry)
 		}
 	}
@@ -112,12 +116,13 @@ func (handler *RipHandler) BroadcastAllRoutes(messageChannel chan<- model.SendMe
 	ripinfo, err := RoutingEntries2RipInfo(handler.routingTable.GetAllEntries(), 2)
 	util.CheckError(err)
 	neighbors := handler.routingTable.GetAllNeighbors()
+
 	for _, v := range neighbors {
 		//check learned from
-
+		//fmt.Println(v)
 		message, err := ripinfo.Marshal()
 		util.CheckError(err)
-		messageChannel <- model.MakeSendMessageRequest(message, model.RIP_PROTOCOL, v.Dest)
+		messageChannel <- model.MakeSendMessageRequest(message, model.RIP_PROTOCOL, v)
 	}
 }
 

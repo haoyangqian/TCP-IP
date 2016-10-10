@@ -12,10 +12,10 @@ type RoutingEntry struct {
 	GcTimer   *time.Timer
 }
 
-func MakeRoutingEntry(dst VirtualIp, exitIp VirtualIp, learnedFrom VirtualIp, cost int) RoutingEntry {
+func MakeRoutingEntry(dst VirtualIp, exitIp VirtualIp, nextHop VirtualIp, cost int) RoutingEntry {
 	ttlTimer := time.NewTimer(time.Second * 12)
 	gcTimer := time.NewTimer(time.Second * 12)
-	return RoutingEntry{dst, cost, exitIp, learnedFrom, ttlTimer, false, gcTimer}
+	return RoutingEntry{dst, cost, exitIp, nextHop, ttlTimer, false, gcTimer}
 }
 
 func (entry *RoutingEntry) Update(cost int, nextHop VirtualIp) {

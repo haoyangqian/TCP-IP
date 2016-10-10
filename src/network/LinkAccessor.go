@@ -30,6 +30,7 @@ func (accessor *LinkAccessor) Send(request model.SendPacketRequest) {
 
 	//fmt.Println("link layer Send()")
 	buffer := packet.ConvertToBuffer()
+	// fmt.Println("nextHop:", nextHop)
 	remoteService := accessor.InterfacesTable[nextHop].Descriptor
 	//fmt.Println("remoteAddr:" + remoteService)
 	if remoteService == "" {

@@ -8,11 +8,20 @@ import "errors"
 
 type RoutingTable struct {
 	RoutingEntries map[VirtualIp]*RoutingEntry
+	Neighbors      map[VirtualIp]VirtualIp //nextHop -> ExitIp
 	//Table_lock      sync.Mutex
 }
 
 func (t *RoutingTable) HasEntry(ip VirtualIp) bool {
 	if _, ok := t.RoutingEntries[ip]; ok {
+		return true
+	} else {
+		return false
+	}
+}
+
+func (t *RoutingTable) HasNeighbor(neighbor VirtualIp) bool {
+	if _, ok := t.Neighbors[neighbor]; ok {
 		return true
 	} else {
 		return false
@@ -32,6 +41,19 @@ func (t *RoutingTable) PutEntry(entry *RoutingEntry) {
 	t.RoutingEntries[entry.Dest] = entry
 }
 
+func (t *RoutingTable) PutNeighbor(vip VirtualIp, inter VirtualIp) {
+	t.Neighbors[vip] = inter
+}
+
+func (t *RoutingTable) GetNeighbor(vip VirtualIp) (VirtualIp, error) {
+	var inter VirtualIp
+	if !t.HasNeighbor(vip) {
+		return inter, errors.New("Invalid State: an vip not in the neighbor was requested ")
+	}
+
+	return t.Neighbors[vip], nil
+}
+
 func (t *RoutingTable) GetAllEntries() []*RoutingEntry {
 	routingentries := make([]*RoutingEntry, 0)
 	for _, v := range t.RoutingEntries {
@@ -40,14 +62,12 @@ func (t *RoutingTable) GetAllEntries() []*RoutingEntry {
 	return routingentries
 }
 
-func (t *RoutingTable) GetAllNeighbors() []*RoutingEntry {
-	routingentries := make([]*RoutingEntry, 0)
-	for _, v := range t.RoutingEntries {
-		if v.Cost == 1 {
-			routingentries = append(routingentries, v)
-		}
+func (t *RoutingTable) GetAllNeighbors() []VirtualIp {
+	neighbors := make([]VirtualIp, 0)
+	for k, _ := range t.Neighbors {
+		neighbors = append(neighbors, k)
 	}
-	return routingentries
+	return neighbors
 }
 
 func (t *RoutingTable) GetUpdatedEntries() []*RoutingEntry {
@@ -60,5 +80,6 @@ func (t *RoutingTable) GetExpiredEntries() []*RoutingEntry {
 
 func MakeRoutingTable() RoutingTable {
 	RoutingEntries := make(map[VirtualIp]*RoutingEntry)
-	return RoutingTable{RoutingEntries}
+	Neighbors := make(map[VirtualIp]VirtualIp)
+	return RoutingTable{RoutingEntries, Neighbors}
 }

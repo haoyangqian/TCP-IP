@@ -51,7 +51,6 @@ func ReadLnx(filename string) map[model.VirtualIp]*model.NodeInterface {
 	} else {
 		fmt.Println("fatal!")
 	}
-
 	return interfaces
 }
 
@@ -60,6 +59,12 @@ func SetRoutingtable(interfaces map[model.VirtualIp]*model.NodeInterface) model.
 	for _, v := range interfaces {
 		entry := model.MakeRoutingEntry(v.Src, v.Src, v.Src, 0)
 		table.PutEntry(&entry)
+
+		if v.ToSelf == false {
+			table.PutNeighbor(v.Dest, v.Src)
+			//fmt.Println("put neighbor:", v.Dest)
+		}
+
 	}
 	return table
 }
@@ -86,6 +91,19 @@ func PrintRoutingtable(table model.RoutingTable) {
 	table_map := table.RoutingEntries
 	for _, v := range table_map {
 		fmt.Fprintf(w, " \t\t%s\t%s\t%d\n", v.NextHop.Ip, v.ExitIp.Ip, v.Cost)
+	}
+	w.Flush()
+}
+
+func PrintRoutingtableall(table model.RoutingTable) {
+	w := new(tabwriter.Writer)
+	// Format in tab-separated columns with a tab stop of 8.
+	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
+	fmt.Fprintf(w, " \t\tdst\texit\tnexthop\tcost\n")
+
+	table_map := table.RoutingEntries
+	for _, v := range table_map {
+		fmt.Fprintf(w, " \t\t%s\t%s\t%s\t%d\n", v.Dest.Ip, v.ExitIp.Ip, v.NextHop, v.Cost)
 	}
 	w.Flush()
 }
@@ -148,7 +166,7 @@ func main() {
 	// }
 
 	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Print(">")
+	fmt.Print("> ")
 	for scanner.Scan() {
 		line := scanner.Text()
 		tokens := strings.Split(line, " ")
@@ -172,14 +190,14 @@ func main() {
 		case "interfaces":
 			PrintInterfaces(interfaces)
 		case "routes":
-			PrintRoutingtable(table)
+			PrintRoutingtableall(table)
 		case "help":
 			PrintHelp()
 		default:
 			PrintHelp()
 
 		}
-		fmt.Print(">")
+		fmt.Print("> ")
 	}
 	wg.Wait()
 }
