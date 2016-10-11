@@ -19,12 +19,14 @@ func (runner *RipRunner) Run() {
 
 	runner.restartBroadcastTimer()
 	runner.restartTriggeredUpdateTimer()
-	//runner.ripHandler.BroadcastRequest(runner.messageChannel)
+	runner.ripHandler.BroadcastRequest(runner.messageChannel)
 	for {
 
 		select {
 		case <-runner.broadcastTimer.C:
+			// fmt.Println("broadcasting routes")
 			runner.ripHandler.BroadcastAllRoutes(runner.messageChannel)
+			// fmt.Println("broadcast done")
 			runner.restartBroadcastTimer()
 			// fmt.Println("broadcast all")
 

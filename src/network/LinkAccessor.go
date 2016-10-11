@@ -29,7 +29,11 @@ func (accessor *LinkAccessor) Send(request model.SendPacketRequest) {
 	packet := request.Packet()
 	nextHop := request.NextHop()
 
-	selfinterface, _ := accessor.NodeInterfaceTable.GetInterfaceByNextHopVip(nextHop)
+	// fmt.Println("nextHop:", nextHop)
+	selfinterface, err := accessor.NodeInterfaceTable.GetInterfaceByNextHopVip(nextHop)
+	if err != nil {
+		fmt.Println(err)
+	}
 	//check if interface is down
 	if selfinterface.Enabled == false {
 		// fmt.Println("Sorry,cannot send because interface is down:%s", selfinterface.Src.Ip)

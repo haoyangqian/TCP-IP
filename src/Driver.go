@@ -126,6 +126,8 @@ func PrintRoutingtable(table model.RoutingTable) {
 func PrintRoutingtableall(table model.RoutingTable) {
 	w := new(tabwriter.Writer)
 	// Format in tab-separated columns with a tab stop of 8.
+	fmt.Println("table len:", len(table.RoutingEntries))
+	fmt.Println("neighbor len:", len(table.Neighbors))
 	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
 	fmt.Fprintf(w, " \t\tdst\texit\tnexthop\tcost\texpired\tshould_expire\tshould_gc\n")
 	fmt.Printf("time now is %d\n", time.Now().Unix())

@@ -1,6 +1,6 @@
 
 def makeLinkFile(src, neighbors) 
-	filename = "bignet-#{src}.lnx"
+	filename = "#{src}.lnx"
 	service = "localhost:600#{src}"
 
 	failed = false	
@@ -12,11 +12,12 @@ def makeLinkFile(src, neighbors)
 			neighbors.each do |n|
 				neighbor_service = "localhost:600#{n}"
 
-				(1..2).each do |i|
+				#(1..2).each do |i|
+				i = 1
 					src_link = "#{src}.#{n}.0.#{i}"
 					dst_link = "#{n}.#{src}.0.#{i}"
 					f.puts("#{neighbor_service} #{src_link} #{dst_link}")
-				end
+				# end
 			end
 		rescue
 			failed = true
@@ -27,12 +28,11 @@ def makeLinkFile(src, neighbors)
 end	 
 
 
-makeLinkFile(1, [2, 4])
-makeLinkFile(2, [1, 3, 5])
-makeLinkFile(3, [2, 6])
-makeLinkFile(4, [1, 5, 7])
-makeLinkFile(5, [2, 4, 6, 8])
-makeLinkFile(6, [3, 5, 9])
-makeLinkFile(7, [4, 8])
-makeLinkFile(8, [5, 7, 9])
-makeLinkFile(9, [6, 8])
+makeLinkFile(1, [2, 5])
+makeLinkFile(2, [1, 3, 6])
+makeLinkFile(3, [2, 4, 7])
+makeLinkFile(4, [3, 8])
+makeLinkFile(5, [1, 6])
+makeLinkFile(6, [2, 5, 7])
+makeLinkFile(7, [3, 6, 8])
+makeLinkFile(8, [4, 7])

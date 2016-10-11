@@ -67,8 +67,10 @@ func (handler *RipHandler) handleRipRequest(ripInfo model.RipInfo, requester mod
 	neighbor := make([]model.VirtualIp, 0)
 	neighbor = append(neighbor, requester)
 	//fmt.Println("send response to: ", requester)
+	// fmt.Println("[RipHandler] handling RIP request")
 	routingentries := handler.routingTable.GetAllEntries()
 	handler.SendRoutesTo(neighbor, routingentries, messageChannel, 2)
+	// fmt.Println("[RipHandler] RIP request handled")
 	//fmt.Println("response sent to: ", requester)
 	// entries := handler.routingTable.GetAllEntries()
 
@@ -109,7 +111,9 @@ func (handler *RipHandler) handleRipResponse(ripInfo model.RipInfo, selfIp model
 			// func MakeRoutingEntry(dst VirtualIp, exitIp VirtualIp, nextHop VirtualIp, cost int) RoutingEntry
 			if new_cost < model.RIP_INFINITY {
 				new_entry := model.MakeRoutingEntry(ripEntry.Address, selfIp, receivedFromIp, new_cost, false)
+				// fmt.Println("trying to put a new entry")
 				handler.routingTable.PutEntry(&new_entry)
+				// fmt.Println("new entry added")
 			}
 		}
 	}
@@ -144,8 +148,9 @@ func (handler *RipHandler) SendRoutesTo(neighbors []model.VirtualIp, routingentr
 					util.CheckError(err)
 					message, err := ripinfo.Marshal()
 					util.CheckError(err)
-					//fmt.Println("putting message into channel")
+					// fmt.Println("[RipHandler] putting message into channel")
 					messageChannel <- model.MakeSendMessageRequest(message, model.RIP_PROTOCOL, v)
+					// fmt.Println("[RipHandler] message placed")
 				}
 			}
 			//fmt.Println("ripentres: ", ripentries)
@@ -155,9 +160,9 @@ func (handler *RipHandler) SendRoutesTo(neighbors []model.VirtualIp, routingentr
 			util.CheckError(err)
 			message, err := ripinfo.Marshal()
 			util.CheckError(err)
-			//fmt.Println("putting message into channel")
+			// fmt.Println("putting message into channel")
 			messageChannel <- model.MakeSendMessageRequest(message, model.RIP_PROTOCOL, v)
-			//fmt.Println("message placed")
+			// fmt.Println("message placed")
 		}
 	}
 }
@@ -192,7 +197,9 @@ func (handler *RipHandler) ExpireRoutes() {
 		}
 
 		if route.Expired() && route.ShouldGC() {
+			// fmt.Println("calling DeleteEntry")
 			handler.routingTable.DeleteEntry(route)
+			// fmt.Println("DeleteEntry called")
 		}
 	}
 }
