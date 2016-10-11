@@ -36,6 +36,11 @@ func (accessor *LinkAccessor) Send(request model.SendPacketRequest) {
 		return
 	}
 	buffer := packet.ConvertToBuffer()
+	//check if udp len is larger than MTU
+	if len(buffer) > model.UDP_MTU {
+		fmt.Println("udp buffer larger than MTU")
+		return
+	}
 	// fmt.Println("nextHop:", nextHop)
 	remoteService := selfinterface.Descriptor
 	if remoteService == "" {

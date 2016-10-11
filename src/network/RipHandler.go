@@ -122,7 +122,7 @@ func (handler *RipHandler) validateRipInfo(ripInfo model.RipInfo) {
 func (handler *RipHandler) SendRoutesTo(neighbors []model.VirtualIp, routingentries []*model.RoutingEntry, messageChannel chan<- model.SendMessageRequest, command int) {
 	for _, v := range neighbors {
 		ripentries := make([]model.RipEntry, 0)
-		//if command is response
+		/*if command is response*/
 		if command == 2 {
 			//check routingentries if empty
 			if len(routingentries) == 0 {
@@ -138,16 +138,27 @@ func (handler *RipHandler) SendRoutesTo(neighbors []model.VirtualIp, routingentr
 				routingentries[k].SetIsUpdated(false)
 				ripentry := model.RipEntry{cost, routingv.Dest}
 				ripentries = append(ripentries, ripentry)
+				//every 64 entry warp a rip info and send it to channel
+				if (k+1)%64 == 0 || k == len(routingentries)-1 {
+					ripinfo, err := RoutingEntries2RipInfo(ripentries, command)
+					util.CheckError(err)
+					message, err := ripinfo.Marshal()
+					util.CheckError(err)
+					//fmt.Println("putting message into channel")
+					messageChannel <- model.MakeSendMessageRequest(message, model.RIP_PROTOCOL, v)
+				}
 			}
 			//fmt.Println("ripentres: ", ripentries)
+			/*if command is request*/
+		} else if command == 1 {
+			ripinfo, err := RoutingEntries2RipInfo(ripentries, command)
+			util.CheckError(err)
+			message, err := ripinfo.Marshal()
+			util.CheckError(err)
+			//fmt.Println("putting message into channel")
+			messageChannel <- model.MakeSendMessageRequest(message, model.RIP_PROTOCOL, v)
+			//fmt.Println("message placed")
 		}
-		ripinfo, err := RoutingEntries2RipInfo(ripentries, command)
-		util.CheckError(err)
-		message, err := ripinfo.Marshal()
-		util.CheckError(err)
-		//fmt.Println("putting message into channel")
-		messageChannel <- model.MakeSendMessageRequest(message, model.RIP_PROTOCOL, v)
-		//fmt.Println("message placed")
 	}
 }
 

@@ -109,4 +109,3 @@ func MakeRoutingTable() RoutingTable {
 	Neighbors := make(map[VirtualIp]VirtualIp)
 	return RoutingTable{RoutingEntries, Neighbors}
 }
-
