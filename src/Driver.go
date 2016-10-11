@@ -102,7 +102,7 @@ func PrintRoutingtable(table model.RoutingTable) {
 
 	table_map := table.RoutingEntries
 	for _, v := range table_map {
-		fmt.Fprintf(w, " \t\t%s\t%s\t%d\n", v.NextHop.Ip, v.ExitIp.Ip, v.Cost)
+		fmt.Fprintf(w, " \t\t%s\t%s\t%d\n", v.Dest.Ip, v.ExitIp.Ip, v.Cost)
 	}
 	w.Flush()
 }
@@ -116,7 +116,7 @@ func PrintRoutingtableall(table model.RoutingTable) {
 
 	table_map := table.RoutingEntries
 	for _, v := range table_map {
-		fmt.Fprintf(w, " \t\t%s\t%s\t%s\t%d\t%t\t%t\t%t\n", v.Dest.Ip, v.ExitIp.Ip, v.NextHop, v.Cost, v.Expired(), v.ShouldExpire(), v.ShouldGC())
+		fmt.Fprintf(w, " \t\t%s\t%s\t%s\t%d\t%t\t%t\t%t\n", v.Dest.Ip, v.ExitIp.Ip, v.NextHop.Ip, v.Cost, v.Expired(), v.ShouldExpire(), v.ShouldGC())
 	}
 	w.Flush()
 }

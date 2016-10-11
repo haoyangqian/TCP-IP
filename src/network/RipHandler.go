@@ -97,7 +97,7 @@ func (handler *RipHandler) handleRipResponse(ripInfo model.RipInfo, selfIp model
 				existing_entry.Update(new_cost, receivedFromIp)
 			}
 
-			if new_cost == existing_entry.Cost {
+			if new_cost == existing_entry.Cost && !existing_entry.Expired() {
 				existing_entry.ExtendTtl()
 			}
 
