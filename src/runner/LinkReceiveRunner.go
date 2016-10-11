@@ -14,7 +14,9 @@ func MakeLinkReceiveRunner(linkAccessor network.LinkAccessor, chToNet chan<- mod
 
 func (runner *LinkReceiveRunner) Run() {
 	for {
-		packet := runner.linkAccessor.Receive()
-		runner.chToNet <- packet
+		packet, err := runner.linkAccessor.Receive()
+		if err == nil {
+			runner.chToNet <- packet
+		}
 	}
 }

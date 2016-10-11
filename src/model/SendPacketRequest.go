@@ -1,17 +1,17 @@
 package model
 
 type SendPacketRequest struct {
-	packet IpPacket
-	dest   VirtualIp
+	packet  IpPacket
+	nextHop VirtualIp
 }
 
-func MakeSendPacketRequest(packet IpPacket, dest VirtualIp) SendPacketRequest {
-	return SendPacketRequest{packet, dest}
+func MakeSendPacketRequest(packet IpPacket, nextHop VirtualIp) SendPacketRequest {
+	return SendPacketRequest{packet, nextHop}
 }
 
 func (r *SendPacketRequest) Packet() IpPacket {
 	return r.packet
 }
-func (r *SendPacketRequest) Dest() VirtualIp {
-	return r.dest
+func (r *SendPacketRequest) NextHop() VirtualIp {
+	return r.nextHop
 }
