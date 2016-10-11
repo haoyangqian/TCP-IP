@@ -11,7 +11,7 @@ type RoutingEntry struct {
 	IsUpdated  bool
 	GcTimer    int64
 	HasExpired bool
-	IsLocal bool
+	IsLocal    bool
 }
 
 func MakeRoutingEntry(dst VirtualIp, exitIp VirtualIp, nextHop VirtualIp, cost int, isLocal bool) RoutingEntry {
