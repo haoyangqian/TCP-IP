@@ -1,5 +1,7 @@
 package model
 
+import "fmt"
+
 type NodeInterface struct {
 	Id         int
 	Src        VirtualIp
@@ -7,4 +9,14 @@ type NodeInterface struct {
 	Enabled    bool
 	Descriptor string
 	ToSelf     bool
+}
+
+func (i *NodeInterface) Down() {
+	fmt.Printf("interface #%d %s -> %s is now Down\n", i.Id, i.Src, i.Dest)
+	i.Enabled = false
+}
+
+func (i *NodeInterface) Up() {
+	fmt.Printf("interface #%d %s -> %s is now Up\n", i.Id, i.Src, i.Dest)
+	i.Enabled = true
 }

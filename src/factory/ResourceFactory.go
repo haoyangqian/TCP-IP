@@ -5,8 +5,9 @@ import "../network"
 import "../runner"
 
 type ResourceFactory struct {
-	routingTable model.RoutingTable
-	interfaces   map[model.VirtualIp]*model.NodeInterface
+	routingTable       model.RoutingTable
+	interfaces         map[model.VirtualIp]*model.NodeInterface
+	nodeInterfaceTable model.NodeInterfaceTable
 
 	linkAccessor    network.LinkAccessor
 	networkAccessor network.NetworkAccessor
@@ -23,11 +24,13 @@ type ResourceFactory struct {
 
 func InitializeResourceFactory(routingTable model.RoutingTable, interfaces map[model.VirtualIp]*model.NodeInterface, service string) ResourceFactory {
 
+	nodeInterfaceTable := model.MakeNodeInterfaceTable(interfaces)
+
 	ipHandler := network.IpHandler{}
 	networkAccessor := network.NewNetworkAccessor(routingTable)
 	networkAccessor.RegisterHandler(model.TEST_DATA_PROTOCOL, ipHandler)
 
-	linkAccessor := network.NewLinkAccessor(interfaces, service)
+	linkAccessor := network.NewLinkAccessor(nodeInterfaceTable, service)
 
 	messageChannel := make(chan model.SendMessageRequest)
 	netToLinkChannel := make(chan model.SendPacketRequest)
@@ -43,6 +46,7 @@ func InitializeResourceFactory(routingTable model.RoutingTable, interfaces map[m
 	factory := ResourceFactory{}
 	factory.routingTable = routingTable
 	factory.interfaces = interfaces
+	factory.nodeInterfaceTable = nodeInterfaceTable
 	factory.linkAccessor = linkAccessor
 	factory.networkAccessor = networkAccessor
 	factory.messageChannel = messageChannel
@@ -53,6 +57,10 @@ func InitializeResourceFactory(routingTable model.RoutingTable, interfaces map[m
 	factory.networkRunner = networkRunner
 	factory.ripRunner = ripRunner
 	return factory
+}
+
+func (factory *ResourceFactory) NodeInterfaceTable() model.NodeInterfaceTable {
+	return factory.nodeInterfaceTable
 }
 
 func (factory *ResourceFactory) LinkAccessor() network.LinkAccessor {

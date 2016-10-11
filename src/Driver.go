@@ -10,6 +10,7 @@ import (
 	"./factory"
 	"./model"
 	//"./util"
+	"net"
 	"strconv"
 	"sync"
 	"time"
@@ -33,15 +34,28 @@ func ReadLnx(filename string) map[model.VirtualIp]*model.NodeInterface {
 			tokens := strings.Split(line, " ")
 
 			if len(tokens) == 1 {
-				service = tokens[0]
+				untranslatedService := tokens[0]
+				hostname := strings.Split(untranslatedService, ":")[0]
+				port := strings.Split(untranslatedService, ":")[1]
+				remoteAddr, _ := net.LookupIP(hostname)
+
+				service = remoteAddr[0].String() + ":" + port
+
 				fmt.Printf("servicename: %s\n", service)
 
 			} else {
+
 				descriptor := tokens[0]
 				src := model.VirtualIp{Ip: tokens[1]}
 				dest := model.VirtualIp{Ip: tokens[2]}
 
-				node_interface := model.NodeInterface{Id: id_counter, Src: src, Dest: dest, Enabled: true, Descriptor: descriptor, ToSelf: false}
+				hostname := strings.Split(descriptor, ":")[0]
+				port := strings.Split(descriptor, ":")[1]
+				remoteAddr, _ := net.LookupIP(hostname)
+
+				fullAddr := remoteAddr[0].String() + ":" + port
+
+				node_interface := model.NodeInterface{Id: id_counter, Src: src, Dest: dest, Enabled: true, Descriptor: fullAddr, ToSelf: false}
 				interfaces[dest] = &node_interface
 				node_interface2 := model.NodeInterface{Id: id_counter, Src: src, Dest: src, Enabled: true, Descriptor: service, ToSelf: true}
 				interfaces[src] = &node_interface2
@@ -70,7 +84,8 @@ func SetRoutingtable(interfaces map[model.VirtualIp]*model.NodeInterface) model.
 	return table
 }
 
-func PrintInterfaces(interfaces map[model.VirtualIp]*model.NodeInterface) {
+func PrintInterfaces(table model.NodeInterfaceTable) {
+	interfaces := table.GetAllInterfaces()
 	w := new(tabwriter.Writer)
 	// Format in tab-separated columns with a tab stop of 8.
 	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
@@ -83,13 +98,14 @@ func PrintInterfaces(interfaces map[model.VirtualIp]*model.NodeInterface) {
 	w.Flush()
 }
 
-func PrintInterfacesall(interfaces map[model.VirtualIp]*model.NodeInterface) {
+func PrintInterfacesall(table model.NodeInterfaceTable) {
+	interfaces := table.GetAllInterfaces()
 	w := new(tabwriter.Writer)
 	// Format in tab-separated columns with a tab stop of 8.
 	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
-	fmt.Fprintf(w, "id\tdst\tsrc\tenabled\ttoself\n")
+	fmt.Fprintf(w, "id\tdst\tsrc\tenabled\ttoself\taddress\n")
 	for _, v := range interfaces {
-		fmt.Fprintf(w, "%d\t%s\t%s\t%t\t%t\n", v.Id, v.Dest.Ip, v.Src.Ip, v.Enabled, v.ToSelf)
+		fmt.Fprintf(w, "%d\t%s\t%s\t%t\t%t\t%s\n", v.Id, v.Dest.Ip, v.Src.Ip, v.Enabled, v.ToSelf, v.Descriptor)
 	}
 	w.Flush()
 }
@@ -160,6 +176,7 @@ func main() {
 	linkSendRunner := factory.LinkSendRunner()
 	networkRunner := factory.NetworkRunner()
 	ripRunner := factory.RipRunner()
+	interfaceTable := factory.NodeInterfaceTable()
 
 	var wg sync.WaitGroup
 	wg.Add(4)
@@ -186,7 +203,23 @@ func main() {
 		command := strings.ToLower(tokens[0])
 		switch command {
 		case "up":
+			id, _ := strconv.Atoi(tokens[1])
+
+			if interfaceTable.HasId(id) {
+				interfaceTable.Up(id)
+				downedInterface, _ := interfaceTable.GetInterfaceById(id)
+				table.ExpireRoutesByExitIp(downedInterface.Src)
+			}
+
 		case "down":
+			id, _ := strconv.Atoi(tokens[1])
+
+			if interfaceTable.HasId(id) {
+				interfaceTable.Down(id)
+				UppedInterface, _ := interfaceTable.GetInterfaceById(id)
+				table.ExpireRoutesByExitIp(UppedInterface.Src)
+			}
+
 		case "send":
 			{
 				if len(tokens) != 4 {
@@ -201,9 +234,9 @@ func main() {
 				factory.MessageChannel() <- request
 			}
 		case "interfaces":
-			PrintInterfaces(interfaces)
+			PrintInterfaces(interfaceTable)
 		case "di":
-			PrintInterfacesall(interfaces)
+			PrintInterfacesall(interfaceTable)
 		case "routes":
 			PrintRoutingtable(table)
 		case "dr":

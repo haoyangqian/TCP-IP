@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"strings"
 )
 
 /*
@@ -16,8 +15,7 @@ struct for LinkLayer
     UdpSocket      :   UDP socket
 */
 type LinkAccessor struct {
-	NeighborVipToSelf  map[model.VirtualIp]*model.NodeInterface
-	NeighborAddrToSelf map[string]*model.NodeInterface
+	NodeInterfaceTable model.NodeInterfaceTable
 	LocalService       string
 	UdpSocket          *net.UDPConn
 }
@@ -30,7 +28,8 @@ type LinkAccessor struct {
 func (accessor *LinkAccessor) Send(request model.SendPacketRequest) {
 	packet := request.Packet()
 	nextHop := request.NextHop()
-	selfinterface := accessor.NeighborVipToSelf[nextHop]
+
+	selfinterface, _ := accessor.NodeInterfaceTable.GetInterfaceByNextHopVip(nextHop)
 	//check if interface is down
 	if selfinterface.Enabled == false {
 		fmt.Println("Sorry,cannot send because interface is down:%s", selfinterface.Src.Ip)
@@ -62,7 +61,10 @@ func (accessor *LinkAccessor) Receive() (model.IpPacket, error) {
 	_, addr, err := accessor.UdpSocket.ReadFromUDP(buf)
 	util.CheckError(err)
 
-	selfinterface := accessor.NeighborAddrToSelf[addr.String()]
+	if !accessor.NodeInterfaceTable.HasNextHopAddr(addr.String()) {
+		fmt.Printf("interface table does not have next hop addr %s\n", addr.String())
+	}
+	selfinterface, _ := accessor.NodeInterfaceTable.GetInterfaceByNextHopAddr(addr.String())
 	//fmt.Println(selfinterface.Src, selfinterface.Descriptor)
 	if selfinterface.Enabled == false {
 		fmt.Println("Sorry,cannot send because interface is down:%s", selfinterface.Src.Ip)
@@ -80,19 +82,13 @@ func (accessor *LinkAccessor) Receive() (model.IpPacket, error) {
   parameter :  table, service
   return    :  LinkAccessor
 */
-func NewLinkAccessor(table map[model.VirtualIp]*model.NodeInterface, service string) LinkAccessor {
+func NewLinkAccessor(table model.NodeInterfaceTable, service string) LinkAccessor {
 	udpAddr, err := net.ResolveUDPAddr("udp", service)
 	util.CheckError(err)
 	udpSocket, err := net.ListenUDP("udp", udpAddr)
 	util.CheckError(err)
-	neighborAddrToSelf := make(map[string]*model.NodeInterface)
-	for _, v := range table {
-		hostname := strings.Split(v.Descriptor, ":")[0]
-		port := strings.Split(v.Descriptor, ":")[1]
-		remoteAddr, _ := net.LookupIP(hostname)
-		neighborAddrToSelf[remoteAddr[0].String()+":"+port] = v
-	}
-	return LinkAccessor{table, neighborAddrToSelf, service, udpSocket}
+
+	return LinkAccessor{table, service, udpSocket}
 }
 
 /*

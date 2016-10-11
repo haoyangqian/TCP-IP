@@ -96,8 +96,17 @@ func (t *RoutingTable) GetExpiredEntries() []*RoutingEntry {
 	return expiredRoutes
 }
 
+func (t *RoutingTable) ExpireRoutesByExitIp(ip VirtualIp) {
+	for _, v := range t.RoutingEntries {
+		if v.ExitIp == ip && !v.Expired() {
+			v.MarkAsExpired()
+		}
+	}
+}
+
 func MakeRoutingTable() RoutingTable {
 	RoutingEntries := make(map[VirtualIp]*RoutingEntry)
 	Neighbors := make(map[VirtualIp]VirtualIp)
 	return RoutingTable{RoutingEntries, Neighbors}
 }
+
