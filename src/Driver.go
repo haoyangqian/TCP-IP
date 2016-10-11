@@ -57,8 +57,8 @@ func ReadLnx(filename string) map[model.VirtualIp]*model.NodeInterface {
 
 				node_interface := model.NodeInterface{Id: id_counter, Src: src, Dest: dest, Enabled: true, Descriptor: fullAddr, ToSelf: false}
 				interfaces[dest] = &node_interface
-				node_interface2 := model.NodeInterface{Id: id_counter, Src: src, Dest: src, Enabled: true, Descriptor: service, ToSelf: true}
-				interfaces[src] = &node_interface2
+				// node_interface2 := model.NodeInterface{Id: id_counter, Src: src, Dest: src, Enabled: true, Descriptor: service, ToSelf: true}
+				// interfaces[src] = &node_interface2
 				id_counter += 1
 			}
 		}
@@ -72,7 +72,7 @@ func ReadLnx(filename string) map[model.VirtualIp]*model.NodeInterface {
 func SetRoutingtable(interfaces map[model.VirtualIp]*model.NodeInterface) model.RoutingTable {
 	table := model.MakeRoutingTable()
 	for _, v := range interfaces {
-		entry := model.MakeRoutingEntry(v.Src, v.Src, v.Src, 0)
+		entry := model.MakeRoutingEntry(v.Src, v.Src, v.Src, 0, true)
 		table.PutEntry(&entry)
 
 		if v.ToSelf == false {
@@ -207,8 +207,10 @@ func main() {
 
 			if interfaceTable.HasId(id) {
 				interfaceTable.Up(id)
-				downedInterface, _ := interfaceTable.GetInterfaceById(id)
-				table.ExpireRoutesByExitIp(downedInterface.Src)
+				uppedInterface, _ := interfaceTable.GetInterfaceById(id)
+				newRoute := model.MakeRoutingEntry(uppedInterface.Src, uppedInterface.Src, uppedInterface.Src, 0, true)
+				newRoute.SetIsUpdated(true)
+				table.PutEntry(&newRoute)
 			}
 
 		case "down":
@@ -216,8 +218,8 @@ func main() {
 
 			if interfaceTable.HasId(id) {
 				interfaceTable.Down(id)
-				UppedInterface, _ := interfaceTable.GetInterfaceById(id)
-				table.ExpireRoutesByExitIp(UppedInterface.Src)
+				downedInterface, _ := interfaceTable.GetInterfaceById(id)
+				table.ExpireRoutesByExitIp(downedInterface.Src)
 			}
 
 		case "send":

@@ -11,12 +11,13 @@ type RoutingEntry struct {
 	IsUpdated  bool
 	GcTimer    int64
 	HasExpired bool
+	IsLocal bool
 }
 
-func MakeRoutingEntry(dst VirtualIp, exitIp VirtualIp, nextHop VirtualIp, cost int) RoutingEntry {
+func MakeRoutingEntry(dst VirtualIp, exitIp VirtualIp, nextHop VirtualIp, cost int, isLocal bool) RoutingEntry {
 	ttlTimer := time.Now().Unix() + RIP_ROUTING_ENTRY_TTL_SECONDS
 	gcTimer := ttlTimer + RIP_GC_TIMER_SECONDS
-	return RoutingEntry{dst, cost, exitIp, nextHop, ttlTimer, false, gcTimer, false}
+	return RoutingEntry{dst, cost, exitIp, nextHop, ttlTimer, false, gcTimer, false, isLocal}
 }
 
 func (entry *RoutingEntry) Update(cost int, nextHop VirtualIp) {
@@ -69,7 +70,7 @@ func (entry *RoutingEntry) Expired() bool {
 
 func (entry *RoutingEntry) ShouldExpire() bool {
 	// retrun true if ttl is expired but the entry hasn't been marked as expired
-	if entry.Cost == 0 {
+	if entry.IsLocal && entry.Cost == 0 {
 		// a route to a local destination should never expire
 		return false
 	}
@@ -77,7 +78,7 @@ func (entry *RoutingEntry) ShouldExpire() bool {
 }
 
 func (entry *RoutingEntry) ShouldGC() bool {
-	if entry.Cost == 0 {
+	if entry.IsLocal && entry.Cost == 0 {
 		return false
 	}
 	return (time.Now().Unix() > entry.GcTimer) && entry.Expired()

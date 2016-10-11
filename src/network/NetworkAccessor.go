@@ -57,11 +57,13 @@ func (accessor *NetworkAccessor) Send(request model.SendMessageRequest, chToLink
 	var nextHop model.VirtualIp
 	var toSelf = false
 	var ExitIp model.VirtualIp
+	var reachable bool = false
 
 	if accessor.routingTable.HasEntry(dest) {
 		entry, _ := accessor.routingTable.GetEntry(dest)
 		nextHop = entry.NextHop
-		toSelf = entry.Cost == 0
+		toSelf = entry.IsLocal
+		reachable = entry.Cost == 0
 		ExitIp = entry.ExitIp
 		// fmt.Printf("table has entry, sending to %s via exitIp %s, through next hop %s", dest, ExitIp, nextHop)
 	} else if accessor.routingTable.HasNeighbor(dest) {
@@ -76,6 +78,15 @@ func (accessor *NetworkAccessor) Send(request model.SendMessageRequest, chToLink
 	}
 
 	packet := convertToIpPacket(message, protocol, ExitIp, dest, toSelf)
+
+	if toSelf && !reachable {
+		return
+	}
+
+	if handler, ok := accessor.handlers[protocol]; ok && toSelf && reachable {
+		go handler.Handle(packet)
+		return
+	}
 
 	//fmt.Println("network data sent,NextHop: " + entry.NextHop.Ip)
 	chToLink <- model.MakeSendPacketRequest(packet, nextHop)

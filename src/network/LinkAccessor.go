@@ -32,7 +32,7 @@ func (accessor *LinkAccessor) Send(request model.SendPacketRequest) {
 	selfinterface, _ := accessor.NodeInterfaceTable.GetInterfaceByNextHopVip(nextHop)
 	//check if interface is down
 	if selfinterface.Enabled == false {
-		fmt.Println("Sorry,cannot send because interface is down:%s", selfinterface.Src.Ip)
+		// fmt.Println("Sorry,cannot send because interface is down:%s", selfinterface.Src.Ip)
 		return
 	}
 	buffer := packet.ConvertToBuffer()
@@ -67,7 +67,7 @@ func (accessor *LinkAccessor) Receive() (model.IpPacket, error) {
 	selfinterface, _ := accessor.NodeInterfaceTable.GetInterfaceByNextHopAddr(addr.String())
 	//fmt.Println(selfinterface.Src, selfinterface.Descriptor)
 	if selfinterface.Enabled == false {
-		fmt.Println("Sorry,cannot send because interface is down:%s", selfinterface.Src.Ip)
+		// fmt.Println("Sorry,cannot send because interface is down:%s", selfinterface.Src.Ip)
 		return model.IpPacket{}, errors.New("interface down")
 	}
 	//fmt.Println("Received ", string(buf[0:n]), " from ", addr)

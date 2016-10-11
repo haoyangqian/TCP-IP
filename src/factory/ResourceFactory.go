@@ -26,20 +26,22 @@ func InitializeResourceFactory(routingTable model.RoutingTable, interfaces map[m
 
 	nodeInterfaceTable := model.MakeNodeInterfaceTable(interfaces)
 
-	ipHandler := network.IpHandler{}
-	networkAccessor := network.NewNetworkAccessor(routingTable)
-	networkAccessor.RegisterHandler(model.TEST_DATA_PROTOCOL, ipHandler)
-
-	linkAccessor := network.NewLinkAccessor(nodeInterfaceTable, service)
 
 	messageChannel := make(chan model.SendMessageRequest)
 	netToLinkChannel := make(chan model.SendPacketRequest)
 	linkToNetChannel := make(chan model.IpPacket)
 
 	ripHandler := network.MakeRipHandler(routingTable, messageChannel)
+	ipHandler := network.IpHandler{}
+	
+	networkAccessor := network.NewNetworkAccessor(routingTable)
 	networkAccessor.RegisterHandler(model.RIP_PROTOCOL, ripHandler)
+	networkAccessor.RegisterHandler(model.TEST_DATA_PROTOCOL, ipHandler)
+
+	linkAccessor := network.NewLinkAccessor(nodeInterfaceTable, service)
 	linkReceiveRunner := runner.MakeLinkReceiveRunner(linkAccessor, linkToNetChannel)
 	linkSendRunner := runner.MakeLinkSendRunner(linkAccessor, netToLinkChannel)
+
 	networkRunner := runner.MakeNetworkRunner(networkAccessor, messageChannel, linkToNetChannel, netToLinkChannel)
 	ripRunner := runner.MakeRipRunner(ripHandler, messageChannel)
 
