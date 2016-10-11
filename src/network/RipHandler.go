@@ -107,8 +107,10 @@ func (handler *RipHandler) handleRipResponse(ripInfo model.RipInfo, selfIp model
 			}
 		} else {
 			// func MakeRoutingEntry(dst VirtualIp, exitIp VirtualIp, nextHop VirtualIp, cost int) RoutingEntry
-			new_entry := model.MakeRoutingEntry(ripEntry.Address, selfIp, receivedFromIp, new_cost)
-			handler.routingTable.PutEntry(&new_entry)
+			if new_cost < model.RIP_INFINITY {
+				new_entry := model.MakeRoutingEntry(ripEntry.Address, selfIp, receivedFromIp, new_cost)
+				handler.routingTable.PutEntry(&new_entry)
+			}
 		}
 	}
 }

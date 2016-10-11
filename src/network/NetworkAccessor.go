@@ -21,14 +21,15 @@ func (accessor *NetworkAccessor) ReceiveAndHandle(packet model.IpPacket, chToFor
 	//fmt.Println("network receive")
 	//fmt.Println("network received")
 
-	if accessor.ShouldDropPacket(packet) {
-		dropPacket(packet)
+	shouldDrop, reason := accessor.ShouldDropPacket(packet)
+	if shouldDrop {
+		dropPacket(packet, reason)
 		return
 	}
 
 	atDestination, err := accessor.isAtDestination(packet)
 	if err != nil {
-		dropPacket(packet)
+		dropPacket(packet, "error encountered while checking destination")
 		return
 	}
 
@@ -42,7 +43,7 @@ func (accessor *NetworkAccessor) ReceiveAndHandle(packet model.IpPacket, chToFor
 		go handler.Handle(packet)
 	} else {
 		fmt.Println("no handler")
-		dropPacket(packet)
+		dropPacket(packet, "no handler found")
 		return
 	}
 	//fmt.Println("done handling")
@@ -106,21 +107,21 @@ func (accessor *NetworkAccessor) isAtDestination(packet model.IpPacket) (bool, e
 	return entry.Cost == 0, nil
 }
 
-func (accessor *NetworkAccessor) ShouldDropPacket(packet model.IpPacket) bool {
+func (accessor *NetworkAccessor) ShouldDropPacket(packet model.IpPacket) (bool, string) {
 	if checksumMismatch(packet) {
 		fmt.Println("checksum mismatch!")
-		return true
+		return true, "checksum mismatch"
 	}
 
 	if packet.Ipheader.TTL < 0 {
-		return true
+		return true, "TTL is less than 0"
 	}
 
 	if !accessor.routingTable.HasEntry(model.VirtualIp{packet.Ipheader.Dst.String()}) {
-		return true
+		return true, "destination " + packet.Ipheader.Dst.String() + "is not in the routign table"
 	}
 
-	return false
+	return false, ""
 }
 
 func checksumMismatch(packet model.IpPacket) bool {
@@ -131,9 +132,9 @@ func checksumMismatch(packet model.IpPacket) bool {
 	return receivedSum != model.IpSum(packet.Ipheader)
 }
 
-func dropPacket(packet model.IpPacket) {
+func dropPacket(packet model.IpPacket, reason string) {
 	// does nothing, simply drops the packet
-	fmt.Println("invalid packet received:\n")
+	fmt.Printf("invalid packet received: %s\n", reason)
 }
 
 func convertToIpPacket(message []byte, protocol int, src model.VirtualIp, dest model.VirtualIp, isToSelf bool) model.IpPacket {
