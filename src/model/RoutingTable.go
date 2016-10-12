@@ -89,13 +89,18 @@ func (t *RoutingTable) DeleteEntry(entry *RoutingEntry) {
 	}
 }
 
-func (t *RoutingTable) PutNeighbor(vip VirtualIp, inter VirtualIp) {
-	// fmt.Println("[RoutingTable] PutNeighbor WANTS write lock")
+func (t *RoutingTable) PutNeighbor(neighborVip VirtualIp, selfVip VirtualIp) {
 	t.WriteLock()
-	// fmt.Println("[RoutingTable] PutNeighbor ACQUIRED write lock")
-	t.Neighbors[vip] = inter
+	t.Neighbors[neighborVip] = selfVip
 	t.WriteUnLock()
-	// fmt.Println("[RoutingTable] PutNeighbor RELEASED write lock")
+}
+
+func (t *RoutingTable) DeleteNeighbor(neighborVip VirtualIp) {
+	if t.HasNeighbor(neighborVip) {
+		t.WriteLock()
+		delete(t.Neighbors, neighborVip)
+		t.WriteUnLock()
+	}
 }
 
 func (t *RoutingTable) GetNeighbor(vip VirtualIp) (VirtualIp, error) {

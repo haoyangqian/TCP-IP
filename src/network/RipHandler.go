@@ -99,8 +99,9 @@ func (handler *RipHandler) handleRipResponse(ripInfo model.RipInfo, selfIp model
 				existing_entry.Update(new_cost, receivedFromIp)
 			}
 
-			if new_cost == existing_entry.Cost && !existing_entry.Expired() {
-				existing_entry.ExtendTtl()
+			// if a same route comes in with the same cost and same next hop, renew the existing route
+			if new_cost == existing_entry.Cost && !existing_entry.Expired() && existing_entry.NextHop == receivedFromIp {
+				existing_entry.ExtendTtl()	
 			}
 
 			// expire routes if the new cost is inifinity and the existing route is not marked as expired

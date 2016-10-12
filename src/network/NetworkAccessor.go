@@ -61,17 +61,18 @@ func (accessor *NetworkAccessor) Send(request model.SendMessageRequest, chToLink
 	var ExitIp model.VirtualIp
 	var reachable bool = false
 
-	if accessor.routingTable.HasNeighbor(dest) {
-		//fmt.Println("hop neighbor")
-		nextHop = dest
-		ExitIp, _ = accessor.routingTable.GetNeighbor(dest)
-		// fmt.Printf("neighbor found, sending to %s via exitIp %s, through next hop %s", dest, ExitIp, nextHop)
-	} else if accessor.routingTable.HasEntry(dest) {
+
+	if accessor.routingTable.HasEntry(dest) {
 		entry, _ := accessor.routingTable.GetEntry(dest)
 		nextHop = entry.NextHop
 		toSelf = entry.IsLocal
 		reachable = entry.Cost == 0
 		ExitIp = entry.ExitIp
+	} else if accessor.routingTable.HasNeighbor(dest) {
+		//fmt.Println("hop neighbor")
+		nextHop = dest
+		ExitIp, _ = accessor.routingTable.GetNeighbor(dest)
+		// fmt.Printf("neighbor found, sending to %s via exitIp %s, through next hop %s", dest, ExitIp, nextHop)
 	} else {
 		fmt.Println(request)
 		fmt.Println("Cannot reach this destination!")

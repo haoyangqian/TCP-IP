@@ -93,7 +93,7 @@ func PrintInterfaces(table model.NodeInterfaceTable) {
 	}
 	w.Flush()
 }
-
+	
 func PrintInterfacesall(table model.NodeInterfaceTable) {
 	interfaces := table.GetAllInterfaces()
 	w := new(tabwriter.Writer)
@@ -116,6 +116,22 @@ func PrintRoutingtable(table model.RoutingTable) {
 	for _, v := range table_map {
 		fmt.Fprintf(w, " \t\t%s\t%s\t%d\n", v.Dest.Ip, v.ExitIp.Ip, v.Cost)
 	}
+
+	w.Flush()
+}
+
+func PrintNeighbors(table model.RoutingTable) {
+	w := new(tabwriter.Writer)
+	// Format in tab-separated columns with a tab stop of 8.
+	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
+	fmt.Fprintf(w, " \t\tNeighborVip\t\tLocalVip\n")
+
+	neighbor_map := table.GetAllNeighbors()
+	fmt.Fprintf(w, "len of neighbor is %d\n", len(neighbor_map))
+	for _, neighbor := range neighbor_map {
+		fmt.Fprintf(w, " \t\t%s\n", neighbor.Ip)
+	}
+
 	w.Flush()
 }
 
@@ -209,6 +225,7 @@ func main() {
 				newRoute := model.MakeRoutingEntry(uppedInterface.Src, uppedInterface.Src, uppedInterface.Src, 0, true)
 				newRoute.SetIsUpdated(true)
 				table.PutEntry(&newRoute)
+				table.PutNeighbor(uppedInterface.Dest, uppedInterface.Src)
 			}
 
 		case "down":
@@ -218,6 +235,7 @@ func main() {
 				interfaceTable.Down(id)
 				downedInterface, _ := interfaceTable.GetInterfaceById(id)
 				table.ExpireRoutesByExitIp(downedInterface.Src)
+				table.DeleteNeighbor(downedInterface.Dest)
 			}
 
 		case "send":
@@ -241,6 +259,8 @@ func main() {
 			PrintRoutingtable(table)
 		case "dr":
 			PrintRoutingtableall(table)
+		case "dn":
+			PrintNeighbors(table)
 		case "help":
 			PrintHelp()
 		default:
