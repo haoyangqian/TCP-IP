@@ -4,9 +4,9 @@ import (
 	"../model"
 	"../util"
 	"errors"
-	// "fmt"
-	// "time"
+	//"fmt"
 	"math"
+	//"time"
 )
 
 type RipHandler struct {
@@ -101,7 +101,7 @@ func (handler *RipHandler) handleRipResponse(ripInfo model.RipInfo, selfIp model
 
 			// if a same route comes in with the same cost and same next hop, renew the existing route
 			if new_cost == existing_entry.Cost && !existing_entry.Expired() && existing_entry.NextHop == receivedFromIp {
-				existing_entry.ExtendTtl()	
+				existing_entry.ExtendTtl()
 			}
 
 			// expire routes if the new cost is inifinity and the existing route is not marked as expired
@@ -199,7 +199,7 @@ func (handler *RipHandler) ExpireRoutes() {
 	routes := handler.routingTable.GetExpiredEntries()
 	for _, route := range routes {
 		if route.ShouldExpire() {
-			// fmt.Printf("route to %s should expire ttl left is %d, expired %t shouldGc %t\n", route.Dest, time.Now().Unix() - route.Ttl, route.Expired(), route.ShouldGC())
+			//fmt.Printf("route to %s should expire ttl left is %d, expired %t shouldGc %t\n", route.Dest, time.Now().Unix()-route.Ttl, route.Expired(), route.ShouldGC())
 			route.MarkAsExpired()
 			continue
 		}
