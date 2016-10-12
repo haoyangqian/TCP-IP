@@ -110,6 +110,12 @@ func (handler *RipHandler) handleRipResponse(ripInfo model.RipInfo, selfIp model
 		} else {
 			// func MakeRoutingEntry(dst VirtualIp, exitIp VirtualIp, nextHop VirtualIp, cost int) RoutingEntry
 			if new_cost < model.RIP_INFINITY {
+
+				if handler.routingTable.HasNeighbor(ripEntry.Address) {
+					exitIpToNeighbor, _ := handler.routingTable.GetNeighbor(ripEntry.Address)
+					selfIp = exitIpToNeighbor
+				}
+
 				new_entry := model.MakeRoutingEntry(ripEntry.Address, selfIp, receivedFromIp, new_cost, false)
 				// fmt.Println("trying to put a new entry")
 				handler.routingTable.PutEntry(&new_entry)
