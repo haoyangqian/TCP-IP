@@ -4,14 +4,16 @@ import "errors"
 
 type NodeInterfaceTable struct {
 	NeighborVipToSelf  map[VirtualIp]*NodeInterface
-	NeighborAddrToSelf map[string]*NodeInterface
+	NeighborAddrToSelf map[string][]*NodeInterface
 }
 
 func MakeNodeInterfaceTable(neighborVipToSelfTable map[VirtualIp]*NodeInterface) NodeInterfaceTable {
-
-	neighborAddrToSelf := make(map[string]*NodeInterface)
+	neighborAddrToSelf := make(map[string][]*NodeInterface)
 	for _, v := range neighborVipToSelfTable {
-		neighborAddrToSelf[v.Descriptor] = v
+		if _, ok := neighborAddrToSelf[v.Descriptor]; !ok {
+			neighborAddrToSelf[v.Descriptor] = make([]*NodeInterface, 0)
+		}
+		neighborAddrToSelf[v.Descriptor] = append(neighborAddrToSelf[v.Descriptor], v)
 	}
 
 	return NodeInterfaceTable{neighborVipToSelfTable, neighborAddrToSelf}
@@ -63,10 +65,10 @@ func (t *NodeInterfaceTable) HasNextHopAddr(addr string) bool {
 	}
 }
 
-func (t *NodeInterfaceTable) GetInterfaceByNextHopAddr(addr string) (*NodeInterface, error) {
-	var i *NodeInterface
+func (t *NodeInterfaceTable) GetInterfacesByNextHopAddr(addr string) ([]*NodeInterface, error) {
+	var interfaces []*NodeInterface
 	if !t.HasNextHopAddr(addr) {
-		return i, errors.New("Invalid State: an interface not in the InterfaceTable was requested " + addr)
+		return interfaces, errors.New("Invalid State: an interface not in the InterfaceTable was requested " + addr)
 	}
 
 	return t.NeighborAddrToSelf[addr], nil

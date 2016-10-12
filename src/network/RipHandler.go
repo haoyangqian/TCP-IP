@@ -4,7 +4,7 @@ import (
 	"../model"
 	"../util"
 	"errors"
-	//"fmt"
+	// "fmt"
 	// "time"
 	"math"
 )
@@ -24,7 +24,7 @@ func (handler RipHandler) Handle(packet model.IpPacket, receivedFrom model.Virtu
 	command := ripInfo.Command
 
 	selfIp := model.VirtualIp{packet.Ipheader.Dst.String()}
-	receivedFromIp := receivedFrom
+	receivedFromIp := model.VirtualIp{packet.Ipheader.Src.String()}
 
 	//fmt.Println("Selfip:", selfIp)
 	//fmt.Println("recevfrom:", receivedFromIp)

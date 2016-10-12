@@ -74,16 +74,27 @@ func (accessor *LinkAccessor) Receive() (model.IpPacket, model.VirtualIp, error)
 
 	if !accessor.NodeInterfaceTable.HasNextHopAddr(addr.String()) {
 		fmt.Printf("interface table does not have next hop addr %s\n", addr.String())
+		return model.IpPacket{}, model.VirtualIp{}, errors.New("No interface matches the sender's address")
 	}
-	selfinterface, _ := accessor.NodeInterfaceTable.GetInterfaceByNextHopAddr(addr.String())
+	selfInterfaces, _ := accessor.NodeInterfaceTable.GetInterfacesByNextHopAddr(addr.String())
 	//fmt.Println(selfinterface.Src, selfinterface.Descriptor)
-	if selfinterface.Enabled == false {
-		// fmt.Println("Sorry,cannot send because interface is down:%s", selfinterface.Src.Ip)
-		return model.IpPacket{}, model.VirtualIp{}, errors.New("interface down")
+	hasUsableInterface := false
+	var usableInterface *model.NodeInterface
+
+	for _, v := range(selfInterfaces) {
+		if v.Enabled {
+			hasUsableInterface = true
+			usableInterface = v
+		}
 	}
+
+	if !hasUsableInterface {
+		return model.IpPacket{}, model.VirtualIp{}, errors.New("No interface is up to receive datagram from sender")
+	}
+
 	//fmt.Println("Received ", string(buf[0:n]), " from ", addr)
 	ipPacket := model.ConvertToIpPacket(buf)
-	receivedFrom := selfinterface.Dest
+	receivedFrom := usableInterface.Dest
 	//fmt.Println("link Received, returning packet")
 
 	return ipPacket, receivedFrom, nil
