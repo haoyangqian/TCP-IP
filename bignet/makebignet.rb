@@ -1,23 +1,24 @@
 
-def makeLinkFile(src, neighbors) 
+def makeLinkFile(src, neighbors, link_counts)
 	filename = "#{src}.lnx"
-	service = "localhost:600#{src}"
+    port = 6000 + src
+	service = "localhost:#{port}"
 
-	failed = false	
+	failed = false
 
 	File.open(filename, "w") do |f|
 		begin
 			f.puts(service)
 
 			neighbors.each do |n|
-				neighbor_service = "localhost:600#{n}"
+                neighbor_port = 6000 + n
+				neighbor_service = "localhost:#{neighbor_port}"
 
-				#(1..2).each do |i|
-				i = 1
+				(1..link_counts).each do |i|
 					src_link = "#{src}.#{n}.0.#{i}"
 					dst_link = "#{n}.#{src}.0.#{i}"
 					f.puts("#{neighbor_service} #{src_link} #{dst_link}")
-				# end
+				end
 			end
 		rescue
 			failed = true
@@ -25,14 +26,14 @@ def makeLinkFile(src, neighbors)
 	end
 
 	File.delete(filename) if failed
-end	 
+end
 
 
-makeLinkFile(1, [2, 5])
-makeLinkFile(2, [1, 3, 6])
-makeLinkFile(3, [2, 4, 7])
-makeLinkFile(4, [3, 8])
-makeLinkFile(5, [1, 6])
-makeLinkFile(6, [2, 5, 7])
-makeLinkFile(7, [3, 6, 8])
-makeLinkFile(8, [4, 7])
+makeLinkFile(1, [6, 8, 2, 4], 3)
+makeLinkFile(2, [7, 1, 3, 5], 3)
+makeLinkFile(3, [8, 2, 4, 6], 3)
+makeLinkFile(4, [1, 3, 5, 7], 3)
+makeLinkFile(5, [2, 4, 6, 8], 3)
+makeLinkFile(6, [3, 5, 7, 1], 3)
+makeLinkFile(7, [4, 6, 8, 2], 3)
+makeLinkFile(8, [5, 7, 1, 3], 3)

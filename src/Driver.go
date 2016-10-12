@@ -101,7 +101,7 @@ func PrintInterfacesall(table model.NodeInterfaceTable) {
 	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
 	fmt.Fprintf(w, "id\tdst\tsrc\tenabled\taddress\n")
 	for _, v := range interfaces {
-		fmt.Fprintf(w, "%d\t%s\t%s\t%t\t%t\t%s\n", v.Id, v.Dest.Ip, v.Src.Ip, v.Enabled, v.Descriptor)
+		fmt.Fprintf(w, "%d\t%s\t%s\t%t\t%s\n", v.Id, v.Dest.Ip, v.Src.Ip, v.Enabled, v.Descriptor)
 	}
 	w.Flush()
 }
