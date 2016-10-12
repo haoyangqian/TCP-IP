@@ -6,7 +6,7 @@ import "../model"
 type IpHandler struct {
 }
 
-func (handler IpHandler) Handle(packet model.IpPacket) {
+func (handler IpHandler) Handle(packet model.IpPacket, receivedFrom model.VirtualIp) {
 	printPacketInfo(packet)
 }
 

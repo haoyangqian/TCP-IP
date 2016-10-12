@@ -68,6 +68,10 @@ func (entry *RoutingEntry) Expired() bool {
 	return entry.HasExpired
 }
 
+func (entry *RoutingEntry) Reachable() bool {
+	return entry.Cost < RIP_INFINITY
+}
+
 func (entry *RoutingEntry) ShouldExpire() bool {
 	// retrun true if ttl is expired but the entry hasn't been marked as expired
 	if entry.IsLocal && entry.Cost == 0 {

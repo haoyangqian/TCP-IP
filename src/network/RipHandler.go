@@ -4,7 +4,7 @@ import (
 	"../model"
 	"../util"
 	"errors"
-	// "fmt"
+	//"fmt"
 	// "time"
 	"math"
 )
@@ -18,13 +18,13 @@ func MakeRipHandler(routingTable model.RoutingTable, messageChannel chan<- model
 	return RipHandler{routingTable, messageChannel}
 }
 
-func (handler RipHandler) Handle(packet model.IpPacket) {
+func (handler RipHandler) Handle(packet model.IpPacket, receivedFrom model.VirtualIp) {
 	ripInfo, _ := model.UnmarshalToInfo(packet.Payload)
 
 	command := ripInfo.Command
 
 	selfIp := model.VirtualIp{packet.Ipheader.Dst.String()}
-	receivedFromIp := model.VirtualIp{packet.Ipheader.Src.String()}
+	receivedFromIp := receivedFrom
 
 	//fmt.Println("Selfip:", selfIp)
 	//fmt.Println("recevfrom:", receivedFromIp)
@@ -169,6 +169,7 @@ func (handler *RipHandler) SendRoutesTo(neighbors []model.VirtualIp, routingentr
 
 func (handler *RipHandler) BroadcastRoutes(routingentries []*model.RoutingEntry, messageChannel chan<- model.SendMessageRequest, command int) {
 	neighbors := handler.routingTable.GetAllNeighbors()
+	//fmt.Println("neighbors:", neighbors)
 	handler.SendRoutesTo(neighbors, routingentries, messageChannel, command)
 }
 

@@ -29,10 +29,12 @@ func (accessor *LinkAccessor) Send(request model.SendPacketRequest) {
 	packet := request.Packet()
 	nextHop := request.NextHop()
 
-	// fmt.Println("nextHop:", nextHop)
+	//fmt.Println("nextHop:", nextHop)
 	selfinterface, err := accessor.NodeInterfaceTable.GetInterfaceByNextHopVip(nextHop)
+	//fmt.Println("interface:", selfinterface)
 	if err != nil {
 		fmt.Println(err)
+		return
 	}
 	//check if interface is down
 	if selfinterface.Enabled == false {
@@ -63,9 +65,9 @@ func (accessor *LinkAccessor) Send(request model.SendPacketRequest) {
   parameter :  NULL
   return    :  IpPacket
 */
-func (accessor *LinkAccessor) Receive() (model.IpPacket, error) {
+func (accessor *LinkAccessor) Receive() (model.IpPacket, model.VirtualIp, error) {
 	//fmt.Println("link Receive()")
-	// TODO: change 1400 to MTU
+	// TODO: change 1400 to MTU\
 	buf := make([]byte, 1400)
 	_, addr, err := accessor.UdpSocket.ReadFromUDP(buf)
 	util.CheckError(err)
@@ -77,13 +79,14 @@ func (accessor *LinkAccessor) Receive() (model.IpPacket, error) {
 	//fmt.Println(selfinterface.Src, selfinterface.Descriptor)
 	if selfinterface.Enabled == false {
 		// fmt.Println("Sorry,cannot send because interface is down:%s", selfinterface.Src.Ip)
-		return model.IpPacket{}, errors.New("interface down")
+		return model.IpPacket{}, model.VirtualIp{}, errors.New("interface down")
 	}
 	//fmt.Println("Received ", string(buf[0:n]), " from ", addr)
 	ipPacket := model.ConvertToIpPacket(buf)
+	receivedFrom := selfinterface.Dest
 	//fmt.Println("link Received, returning packet")
 
-	return ipPacket, nil
+	return ipPacket, receivedFrom, nil
 }
 
 /*

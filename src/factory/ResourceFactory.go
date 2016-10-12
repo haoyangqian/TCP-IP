@@ -14,7 +14,7 @@ type ResourceFactory struct {
 
 	messageChannel   chan model.SendMessageRequest
 	netToLinkChannel chan model.SendPacketRequest
-	linkToNetChannel chan model.IpPacket
+	linkToNetChannel chan model.LinkReceiveResult
 
 	linkReceiveRunner runner.LinkReceiveRunner
 	linkSendRunner    runner.LinkSendRunner
@@ -26,14 +26,13 @@ func InitializeResourceFactory(routingTable model.RoutingTable, interfaces map[m
 
 	nodeInterfaceTable := model.MakeNodeInterfaceTable(interfaces)
 
-
 	messageChannel := make(chan model.SendMessageRequest)
 	netToLinkChannel := make(chan model.SendPacketRequest)
-	linkToNetChannel := make(chan model.IpPacket)
+	linkToNetChannel := make(chan model.LinkReceiveResult)
 
 	ripHandler := network.MakeRipHandler(routingTable, messageChannel)
 	ipHandler := network.IpHandler{}
-	
+
 	networkAccessor := network.NewNetworkAccessor(routingTable)
 	networkAccessor.RegisterHandler(model.RIP_PROTOCOL, ripHandler)
 	networkAccessor.RegisterHandler(model.TEST_DATA_PROTOCOL, ipHandler)
@@ -81,7 +80,7 @@ func (factory *ResourceFactory) NetToLinkChannel() chan model.SendPacketRequest 
 	return factory.netToLinkChannel
 }
 
-func (factory *ResourceFactory) LinkToNetChannel() chan model.IpPacket {
+func (factory *ResourceFactory) LinkToNetChannel() chan model.LinkReceiveResult {
 	return factory.linkToNetChannel
 }
 

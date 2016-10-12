@@ -55,9 +55,9 @@ func ReadLnx(filename string) map[model.VirtualIp]*model.NodeInterface {
 
 				fullAddr := remoteAddr[0].String() + ":" + port
 
-				node_interface := model.NodeInterface{Id: id_counter, Src: src, Dest: dest, Enabled: true, Descriptor: fullAddr, ToSelf: false}
+				node_interface := model.NodeInterface{Id: id_counter, Src: src, Dest: dest, Enabled: true, Descriptor: fullAddr}
 				interfaces[dest] = &node_interface
-				// node_interface2 := model.NodeInterface{Id: id_counter, Src: src, Dest: src, Enabled: true, Descriptor: service, ToSelf: true}
+				// node_interface2 := model.NodeInterface{Id: id_counter, Src: src, Dest: src, Enabled: true, Descriptor: service}
 				// interfaces[src] = &node_interface2
 				id_counter += 1
 			}
@@ -74,11 +74,8 @@ func SetRoutingtable(interfaces map[model.VirtualIp]*model.NodeInterface) model.
 	for _, v := range interfaces {
 		entry := model.MakeRoutingEntry(v.Src, v.Src, v.Src, 0, true)
 		table.PutEntry(&entry)
-
-		if v.ToSelf == false {
-			table.PutNeighbor(v.Dest, v.Src)
-			//fmt.Println("put neighbor:", v.Dest)
-		}
+		table.PutNeighbor(v.Dest, v.Src)
+		//fmt.Println("put neighbor:", v.Dest)
 
 	}
 	return table
@@ -91,9 +88,8 @@ func PrintInterfaces(table model.NodeInterfaceTable) {
 	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
 	fmt.Fprintf(w, "id\tdst\tsrc\tenabled\n")
 	for _, v := range interfaces {
-		if v.ToSelf == false {
-			fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", v.Id, v.Dest.Ip, v.Src.Ip, v.Enabled)
-		}
+
+		fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", v.Id, v.Dest.Ip, v.Src.Ip, v.Enabled)
 	}
 	w.Flush()
 }
@@ -103,9 +99,9 @@ func PrintInterfacesall(table model.NodeInterfaceTable) {
 	w := new(tabwriter.Writer)
 	// Format in tab-separated columns with a tab stop of 8.
 	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
-	fmt.Fprintf(w, "id\tdst\tsrc\tenabled\ttoself\taddress\n")
+	fmt.Fprintf(w, "id\tdst\tsrc\tenabled\taddress\n")
 	for _, v := range interfaces {
-		fmt.Fprintf(w, "%d\t%s\t%s\t%t\t%t\t%s\n", v.Id, v.Dest.Ip, v.Src.Ip, v.Enabled, v.ToSelf, v.Descriptor)
+		fmt.Fprintf(w, "%d\t%s\t%s\t%t\t%t\t%s\n", v.Id, v.Dest.Ip, v.Src.Ip, v.Enabled, v.Descriptor)
 	}
 	w.Flush()
 }

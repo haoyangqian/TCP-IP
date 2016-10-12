@@ -5,18 +5,18 @@ import "../network"
 
 type LinkReceiveRunner struct {
 	linkAccessor network.LinkAccessor
-	chToNet      chan<- model.IpPacket
+	chToNet      chan<- model.LinkReceiveResult
 }
 
-func MakeLinkReceiveRunner(linkAccessor network.LinkAccessor, chToNet chan<- model.IpPacket) LinkReceiveRunner {
+func MakeLinkReceiveRunner(linkAccessor network.LinkAccessor, chToNet chan<- model.LinkReceiveResult) LinkReceiveRunner {
 	return LinkReceiveRunner{linkAccessor, chToNet}
 }
 
 func (runner *LinkReceiveRunner) Run() {
 	for {
-		packet, err := runner.linkAccessor.Receive()
+		packet, receivedFrom, err := runner.linkAccessor.Receive()
 		if err == nil {
-			runner.chToNet <- packet
+			runner.chToNet <- model.LinkReceiveResult{packet, receivedFrom}
 		}
 	}
 }

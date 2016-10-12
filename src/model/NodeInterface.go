@@ -8,7 +8,6 @@ type NodeInterface struct {
 	Dest       VirtualIp
 	Enabled    bool
 	Descriptor string
-	ToSelf     bool
 }
 
 func (i *NodeInterface) Down() {

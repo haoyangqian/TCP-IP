@@ -17,9 +17,11 @@ func (accessor *NetworkAccessor) RegisterHandler(protocol int, handler NetworkHa
 	accessor.handlers[protocol] = handler
 }
 
-func (accessor *NetworkAccessor) ReceiveAndHandle(packet model.IpPacket, chToForward chan<- model.SendPacketRequest) {
+func (accessor *NetworkAccessor) ReceiveAndHandle(result model.LinkReceiveResult, chToForward chan<- model.SendPacketRequest) {
 	//fmt.Println("network receive")
 	//fmt.Println("network received")
+	packet := result.Packet
+	receivedFrom := result.ReceivedFrom
 
 	shouldDrop, reason := accessor.ShouldDropPacket(packet)
 	if shouldDrop {
@@ -40,7 +42,7 @@ func (accessor *NetworkAccessor) ReceiveAndHandle(packet model.IpPacket, chToFor
 
 	protocol := packet.Ipheader.Protocol
 	if handler, ok := accessor.handlers[protocol]; ok {
-		go handler.Handle(packet)
+		go handler.Handle(packet, receivedFrom)
 	} else {
 		fmt.Println("no handler")
 		dropPacket(packet, "no handler found")
@@ -84,7 +86,7 @@ func (accessor *NetworkAccessor) Send(request model.SendMessageRequest, chToLink
 	}
 
 	if handler, ok := accessor.handlers[protocol]; ok && toSelf && reachable {
-		go handler.Handle(packet)
+		go handler.Handle(packet, nextHop)
 		return
 	}
 
@@ -93,11 +95,17 @@ func (accessor *NetworkAccessor) Send(request model.SendMessageRequest, chToLink
 }
 
 func (accessor *NetworkAccessor) ForwardPacket(packet model.IpPacket, chToForward chan<- model.SendPacketRequest) {
+	//fmt.Println("Forward packet:", packet.Ipheader.Src, packet.Ipheader.Dst)
 	entry, err := accessor.routingTable.GetEntry(model.VirtualIp{packet.Ipheader.Dst.String()})
 	if err != nil {
 		println(err)
 		return
 	}
+
+	if !entry.Reachable() {
+		return
+	}
+
 	packet.Ipheader.TTL -= 1
 	packet.Ipheader.Checksum = 0
 	packet.Ipheader.Checksum = model.IpSum(packet.Ipheader)
@@ -145,7 +153,7 @@ func checksumMismatch(packet model.IpPacket) bool {
 
 func dropPacket(packet model.IpPacket, reason string) {
 	// does nothing, simply drops the packet
-	fmt.Printf("invalid packet received: %s\n", reason)
+	//fmt.Printf("invalid packet received: %s\n", reason)
 }
 
 func convertToIpPacket(message []byte, protocol int, src model.VirtualIp, dest model.VirtualIp, isToSelf bool) model.IpPacket {

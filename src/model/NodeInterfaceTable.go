@@ -47,12 +47,12 @@ func (t *NodeInterfaceTable) GetInterfaceByExitIp(ip VirtualIp) (*NodeInterface,
 	var i *NodeInterface
 
 	for _, v := range t.NeighborVipToSelf {
-		if v.Src == ip && !v.ToSelf {
+		if v.Src == ip {
 			return v, nil
 		}
 	}
 	return i, errors.New("Invalid State: an interface not in the InterfaceTable was requested " + ip.Ip)
-	
+
 }
 
 func (t *NodeInterfaceTable) HasNextHopAddr(addr string) bool {
@@ -82,7 +82,7 @@ func (t *NodeInterfaceTable) GetAllInterfaces() []*NodeInterface {
 
 func (t *NodeInterfaceTable) HasId(id int) bool {
 	for _, v := range t.NeighborVipToSelf {
-		if v.Id == id && !v.ToSelf {
+		if v.Id == id {
 			return true
 		}
 	}
@@ -94,7 +94,7 @@ func (t *NodeInterfaceTable) GetInterfaceById(id int) (*NodeInterface, error) {
 	var result *NodeInterface
 
 	for _, v := range t.NeighborVipToSelf {
-		if v.Id == id && !v.ToSelf {
+		if v.Id == id {
 			return v, nil
 		}
 	}
