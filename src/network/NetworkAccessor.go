@@ -52,36 +52,46 @@ func (accessor *NetworkAccessor) Send(request model.SendMessageRequest, chToLink
 	message := request.Message()
 	protocol := request.Protocol()
 	dest := request.Dest()
+
 	var nextHop model.VirtualIp
-	var toSelf = false
-	var ExitIp model.VirtualIp
-	var reachable bool = false
+	var exitIp model.VirtualIp
+	var packet model.IpPacket
+
+	toSelf := false
+	localDelivery := false
 
 	if accessor.routingTable.HasEntry(dest) {
 		entry, _ := accessor.routingTable.GetEntry(dest)
 		nextHop = entry.NextHop
 		toSelf = entry.IsLocal
-		reachable = entry.Cost == 0
-		ExitIp = entry.ExitIp
+		localDelivery = entry.Cost == 0
+		exitIp = entry.ExitIp
 	} else if accessor.routingTable.HasNeighbor(dest) {
 		nextHop = dest
-		ExitIp, _ = accessor.routingTable.GetNeighbor(dest)
+		exitIp, _ = accessor.routingTable.GetNeighbor(dest)
 	} else {
 		fmt.Println(request)
 		fmt.Println("Cannot reach this destination!")
 		return
 	}
 
-	packet := convertToIpPacket(message, protocol, ExitIp, dest, toSelf)
 
-	if toSelf && !reachable {
+	if toSelf && !localDelivery {
+		// the packet is intended for the local node but the destination VIP is unreachable
+		// this might happen if a interface is down but other nodes managed to send in requests before their routes were updated
+		dropPacket(packet, "A packet is inteded for a local VIP but that VIP is not reachable locally")
 		return
 	}
 
-	if handler, ok := accessor.handlers[protocol]; ok && toSelf && reachable {
+	packet = convertToIpPacket(message, protocol, exitIp, dest, toSelf)
+
+	// handle the packet locally if the packet was for a local VIP and the VIP is reachable
+	if handler, ok := accessor.handlers[protocol]; ok && toSelf && localDelivery {
 		go handler.Handle(packet, nextHop)
 		return
 	}
+
+	// cannot handle locally, forwarding the packet
 	chToLink <- model.MakeSendPacketRequest(packet, nextHop)
 }
 

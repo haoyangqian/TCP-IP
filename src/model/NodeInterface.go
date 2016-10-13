@@ -11,11 +11,11 @@ type NodeInterface struct {
 }
 
 func (i *NodeInterface) Down() {
-	fmt.Printf("interface #%d %s -> %s is now Down\n", i.Id, i.Src, i.Dest)
+	fmt.Printf("interface #%d Disabled\n", i.Id)
 	i.Enabled = false
 }
 
 func (i *NodeInterface) Up() {
-	fmt.Printf("interface #%d %s -> %s is now Up\n", i.Id, i.Src, i.Dest)
+	fmt.Printf("interface #%d Enabled\n", i.Id)
 	i.Enabled = true
 }

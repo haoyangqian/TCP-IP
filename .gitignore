@@ -1,4 +1,4 @@
-*.lnx
+/**/*.lnx
 bignet/node
 *.log
 *.net

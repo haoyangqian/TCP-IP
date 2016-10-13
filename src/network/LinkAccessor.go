@@ -42,7 +42,8 @@ func (accessor *LinkAccessor) Send(request model.SendPacketRequest) {
 	//Check if udp length is larger than MTU
 	if len(buffer) > model.UDP_MTU {
 		fmt.Println("udp buffer larger than MTU")
-		return
+		fmt.Println(buffer)
+		// return
 	}
 	//Check if remoteService is empty
 	remoteService := selfinterface.Descriptor
@@ -61,8 +62,9 @@ func (accessor *LinkAccessor) Send(request model.SendPacketRequest) {
   return    :  IpPacket
 */
 func (accessor *LinkAccessor) Receive() (model.IpPacket, model.VirtualIp, error) {
-	buf := make([]byte, 1400)
-	_, addr, err := accessor.UdpSocket.ReadFromUDP(buf)
+	//fmt.Println("link Receive()")
+	buf := make([]byte, model.UDP_RECEIVE_MAX_BUFFER_SIZE)
+	bytesRead, addr, err := accessor.UdpSocket.ReadFromUDP(buf)
 	util.CheckError(err)
 
 	//Check if no interface can handle this packet
@@ -84,7 +86,7 @@ func (accessor *LinkAccessor) Receive() (model.IpPacket, model.VirtualIp, error)
 	if !hasUsableInterface {
 		return model.IpPacket{}, model.VirtualIp{}, errors.New("No interface is up to receive datagram from sender")
 	}
-	ipPacket := model.ConvertToIpPacket(buf)
+	ipPacket := model.ConvertToIpPacket(buf[0:bytesRead])
 	receivedFrom := usableInterface.Dest
 
 	return ipPacket, receivedFrom, nil

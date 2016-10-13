@@ -38,7 +38,6 @@ function :  Convert routing table to RipInfo
 parameter:   []RoutingEntry,command(int)
 return   :   RipInfo
 */
-
 func RoutingEntries2RipInfo(ripEntries []model.RipEntry, command int) (model.RipInfo, error) {
 	if command != 1 && command != 2 {
 		return model.RipInfo{}, errors.New("Wrong command type")
@@ -70,49 +69,65 @@ func (handler *RipHandler) handleRipRequest(ripInfo model.RipInfo, requester mod
 }
 
 func (handler *RipHandler) handleRipResponse(ripInfo model.RipInfo, selfIp model.VirtualIp, receivedFromIp model.VirtualIp) {
-	handler.validateRipInfo(ripInfo)
+	err := handler.validateRipInfo(ripInfo, receivedFromIp)
+	if err != nil {
+		return
+	}
 
 	for _, ripEntry := range ripInfo.Entries {
 
-		new_cost := int(math.Min(float64(ripEntry.Cost+1), float64(model.RIP_INFINITY)))
-		if handler.routingTable.HasEntry(ripEntry.Address) {
-			// possible update of existing route
+		newCost := int(math.Min(float64(ripEntry.Cost+1), float64(model.RIP_INFINITY)))
 
-			// calculate new cost
-			existing_entry, _ := handler.routingTable.GetEntry(ripEntry.Address)
-
-			// update entry is new cost is cheaper
-			if new_cost < existing_entry.Cost {
-				existing_entry.Update(new_cost, receivedFromIp)
-			}
-
-			// if a same route comes in with the same cost and same next hop, renew the existing route
-			if new_cost == existing_entry.Cost && !existing_entry.Expired() && existing_entry.NextHop == receivedFromIp {
-				existing_entry.ExtendTtl()
-			}
-
-			// expire routes if the new cost is inifinity and the existing route is not marked as expired
-			if new_cost >= model.RIP_INFINITY && !existing_entry.Expired() && existing_entry.NextHop == receivedFromIp {
-				existing_entry.MarkAsExpired()
-			}
+		if !handler.routingTable.HasEntry(ripEntry.Address) {
+			handler.addNewRoute(newCost, ripEntry.Address, selfIp, receivedFromIp)
 		} else {
-			// func MakeRoutingEntry(dst VirtualIp, exitIp VirtualIp, nextHop VirtualIp, cost int) RoutingEntry
-			if new_cost < model.RIP_INFINITY {
-
-				if handler.routingTable.HasNeighbor(ripEntry.Address) {
-					exitIpToNeighbor, _ := handler.routingTable.GetNeighbor(ripEntry.Address)
-					selfIp = exitIpToNeighbor
-				}
-
-				new_entry := model.MakeRoutingEntry(ripEntry.Address, selfIp, receivedFromIp, new_cost, false)
-				handler.routingTable.PutEntry(&new_entry)
-			}
+			// possible update of existing route
+			// calculate new cost
+			existingEntry, _ := handler.routingTable.GetEntry(ripEntry.Address)
+			handler.updateExistingRoute(newCost, existingEntry, receivedFromIp)
 		}
 	}
 }
 
-func (handler *RipHandler) validateRipInfo(ripInfo model.RipInfo) {
-	// TODO: do some basic validations here
+func (handler *RipHandler) addNewRoute(newCost int, newAddress model.VirtualIp, selfIp model.VirtualIp, receivedFromIp model.VirtualIp) {
+	if newCost >= model.RIP_INFINITY {
+		return
+	}
+
+	if handler.routingTable.HasNeighbor(newAddress) {
+		exitIpToNeighbor, _ := handler.routingTable.GetNeighbor(newAddress)
+		selfIp = exitIpToNeighbor // override the selfIp from the neighbor table to avoid transient errors
+	}
+
+	new_entry := model.MakeRoutingEntry(newAddress, selfIp, receivedFromIp, newCost, false)
+	handler.routingTable.PutEntry(&new_entry)
+}
+
+func (handler *RipHandler) updateExistingRoute(newCost int, existingEntry *model.RoutingEntry, receivedFromIp model.VirtualIp) {
+	// update route if the new cost is lower
+	if newCost < existingEntry.Cost {
+		existingEntry.Update(newCost, receivedFromIp)
+		return 
+	}
+
+	// decide whether to extend or expire a route learned from the same node
+	if !existingEntry.Expired() && existingEntry.NextHop == receivedFromIp {
+		if newCost == existingEntry.Cost {
+			existingEntry.ExtendTtl()
+		}
+
+		if newCost >= model.RIP_INFINITY {
+			existingEntry.MarkAsExpired()
+		}
+	}
+}
+
+func (handler *RipHandler) validateRipInfo(ripInfo model.RipInfo, receivedFromIp model.VirtualIp) error {
+	if !handler.routingTable.HasNeighbor(receivedFromIp) {
+		return errors.New("RIP response received is not from a neighbor")
+	}
+
+	return nil
 }
 
 /*
@@ -123,8 +138,8 @@ return   :  NULL
 func (handler *RipHandler) SendRoutesTo(neighbors []model.VirtualIp, routingentries []*model.RoutingEntry, messageChannel chan<- model.SendMessageRequest, command int) {
 	for _, v := range neighbors {
 		ripentries := make([]model.RipEntry, 0)
-		/*if command is response*/
 		if command == 2 {
+			/*if command is response*/
 			//Check routingentries if empty
 			if len(routingentries) == 0 {
 				return
@@ -147,8 +162,8 @@ func (handler *RipHandler) SendRoutesTo(neighbors []model.VirtualIp, routingentr
 					messageChannel <- model.MakeSendMessageRequest(message, model.RIP_PROTOCOL, v)
 				}
 			}
-			/*if command is request*/
 		} else if command == 1 {
+			/*if command is request*/
 			ripinfo, err := RoutingEntries2RipInfo(ripentries, command)
 			util.CheckError(err)
 			message, err := ripinfo.Marshal()
@@ -190,9 +205,4 @@ func (handler *RipHandler) ExpireRoutes() {
 			handler.routingTable.DeleteEntry(route)
 		}
 	}
-}
-
-func (handler *RipHandler) UpdateRandom() {
-	entry, _ := handler.routingTable.GetEntry(model.VirtualIp{"192.168.0.6"})
-	entry.Cost = 8
 }

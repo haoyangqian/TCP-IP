@@ -137,6 +137,18 @@ func (t *RoutingTable) GetExpiredEntries() []*RoutingEntry {
 	return expiredRoutes
 }
 
+func (t *RoutingTable) GetLocalRoutes() []*RoutingEntry {
+	t.ReadLock()
+	defer t.ReadUnLock()
+	localRoutes := make([]*RoutingEntry, 0)
+	for _, v := range t.RoutingEntries {
+		if v.IsLocal {
+			localRoutes = append(localRoutes, v)
+		}
+	}
+	return localRoutes
+}
+
 func (t *RoutingTable) ExpireRoutesByExitIp(ip VirtualIp) {
 	for _, v := range t.RoutingEntries {
 		if v.ExitIp == ip && !v.Expired() {
