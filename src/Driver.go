@@ -11,9 +11,10 @@ import (
 	"./model"
 	//"./util"
 	"net"
+	"sort"
 	"strconv"
 	"sync"
-	"time"
+	//"time"
 )
 
 //global variable
@@ -93,11 +94,12 @@ func PrintInterfaces(table model.NodeInterfaceTable) {
 	}
 	w.Flush()
 }
-	
+
 func PrintInterfacesall(table model.NodeInterfaceTable) {
 	interfaces := table.GetAllInterfaces()
 	w := new(tabwriter.Writer)
 	// Format in tab-separated columns with a tab stop of 8.
+	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
 	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
 	fmt.Fprintf(w, "id\tdst\tsrc\tenabled\taddress\n")
 	for _, v := range interfaces {
@@ -108,12 +110,20 @@ func PrintInterfacesall(table model.NodeInterfaceTable) {
 
 func PrintRoutingtable(table model.RoutingTable) {
 	w := new(tabwriter.Writer)
+	table_map := table.RoutingEntries
+	keys := make([]string, 0)
+	for k, _ := range table_map {
+		keys = append(keys, k.Ip)
+	}
+	sort.Strings(keys)
+	fmt.Println(keys)
+	//fmt.Println(interfaces)
 	// Format in tab-separated columns with a tab stop of 8.
 	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
 	fmt.Fprintf(w, " \t\tdst\tsrc\tcost\n")
 
-	table_map := table.RoutingEntries
-	for _, v := range table_map {
+	for _, k := range keys {
+		v := table_map[model.VirtualIp{k}]
 		fmt.Fprintf(w, " \t\t%s\t%s\t%d\n", v.Dest.Ip, v.ExitIp.Ip, v.Cost)
 	}
 
@@ -137,15 +147,22 @@ func PrintNeighbors(table model.RoutingTable) {
 
 func PrintRoutingtableall(table model.RoutingTable) {
 	w := new(tabwriter.Writer)
+	table_map := table.RoutingEntries
+	keys := make([]string, 0)
+	for k, _ := range table_map {
+		keys = append(keys, k.Ip)
+	}
+	sort.Strings(keys)
+	//fmt.Println(keys)
 	// Format in tab-separated columns with a tab stop of 8.
 	fmt.Println("table len:", len(table.RoutingEntries))
-	fmt.Println("neighbor len:", len(table.Neighbors))
+	//fmt.Println("neighbor len:", len(table.Neighbors))
 	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
 	fmt.Fprintf(w, " \t\tdst\texit\tnexthop\tcost\texpired\tshould_expire\tshould_gc\n")
-	fmt.Printf("time now is %d\n", time.Now().Unix())
+	//fmt.Printf("time now is %d\n", time.Now().Unix())
 
-	table_map := table.RoutingEntries
-	for _, v := range table_map {
+	for _, k := range keys {
+		v := table_map[model.VirtualIp{k}]
 		fmt.Fprintf(w, " \t\t%s\t%s\t%s\t%d\t%t\t%t\t%t\n", v.Dest.Ip, v.ExitIp.Ip, v.NextHop.Ip, v.Cost, v.Expired(), v.ShouldExpire(), v.ShouldGC())
 	}
 	w.Flush()
