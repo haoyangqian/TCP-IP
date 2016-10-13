@@ -104,15 +104,6 @@ func (t *NodeInterfaceTable) GetInterfaceById(id int) (*NodeInterface, error) {
 	return result, errors.New("No interface was found with the requested Id")
 }
 
-// func (t *NodeInterfaceTable) GetInterfaceByNextHopAddr(addr string) (*NodeInterface, error) {
-// 	var i *NodeInterface
-// 	if !t.HasNextHopAddress(addr) {
-// 		return i, errors.New("Invalid State: an interface not in the InterfaceTable was requested " + addr)
-// 	}
-
-// 	return t.NeighborAddrToSelf[addr], nil
-// }
-
 func (t *NodeInterfaceTable) Down(id int) error {
 	if id < 0 || id >= len(t.NeighborVipToSelf) {
 		return errors.New("Interface id is out of range")

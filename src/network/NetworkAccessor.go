@@ -18,8 +18,6 @@ func (accessor *NetworkAccessor) RegisterHandler(protocol int, handler NetworkHa
 }
 
 func (accessor *NetworkAccessor) ReceiveAndHandle(result model.LinkReceiveResult, chToForward chan<- model.SendPacketRequest) {
-	//fmt.Println("network receive")
-	//fmt.Println("network received")
 	packet := result.Packet
 	receivedFrom := result.ReceivedFrom
 
@@ -48,11 +46,9 @@ func (accessor *NetworkAccessor) ReceiveAndHandle(result model.LinkReceiveResult
 		dropPacket(packet, "no handler found")
 		return
 	}
-	//fmt.Println("done handling")
 }
 
 func (accessor *NetworkAccessor) Send(request model.SendMessageRequest, chToLink chan<- model.SendPacketRequest) {
-	//fmt.Println("network send test data")
 	message := request.Message()
 	protocol := request.Protocol()
 	dest := request.Dest()
@@ -61,7 +57,6 @@ func (accessor *NetworkAccessor) Send(request model.SendMessageRequest, chToLink
 	var ExitIp model.VirtualIp
 	var reachable bool = false
 
-
 	if accessor.routingTable.HasEntry(dest) {
 		entry, _ := accessor.routingTable.GetEntry(dest)
 		nextHop = entry.NextHop
@@ -69,10 +64,8 @@ func (accessor *NetworkAccessor) Send(request model.SendMessageRequest, chToLink
 		reachable = entry.Cost == 0
 		ExitIp = entry.ExitIp
 	} else if accessor.routingTable.HasNeighbor(dest) {
-		//fmt.Println("hop neighbor")
 		nextHop = dest
 		ExitIp, _ = accessor.routingTable.GetNeighbor(dest)
-		// fmt.Printf("neighbor found, sending to %s via exitIp %s, through next hop %s", dest, ExitIp, nextHop)
 	} else {
 		fmt.Println(request)
 		fmt.Println("Cannot reach this destination!")
@@ -89,13 +82,10 @@ func (accessor *NetworkAccessor) Send(request model.SendMessageRequest, chToLink
 		go handler.Handle(packet, nextHop)
 		return
 	}
-
-	//fmt.Println("network data sent,NextHop: " + entry.NextHop.Ip)
 	chToLink <- model.MakeSendPacketRequest(packet, nextHop)
 }
 
 func (accessor *NetworkAccessor) ForwardPacket(packet model.IpPacket, chToForward chan<- model.SendPacketRequest) {
-	//fmt.Println("Forward packet:", packet.Ipheader.Src, packet.Ipheader.Dst)
 	entry, err := accessor.routingTable.GetEntry(model.VirtualIp{packet.Ipheader.Dst.String()})
 	if err != nil {
 		println(err)
@@ -142,7 +132,7 @@ func (accessor *NetworkAccessor) ShouldDropPacket(packet model.IpPacket) (bool, 
 	}
 
 	routingEntry, _ := accessor.routingTable.GetEntry(model.VirtualIp{packet.Ipheader.Dst.String()})
-	if !routingEntry.Reachable(){
+	if !routingEntry.Reachable() {
 		return true, "destionation " + packet.Ipheader.Dst.String() + " is in the routing table but not reachable"
 	}
 
@@ -152,14 +142,11 @@ func (accessor *NetworkAccessor) ShouldDropPacket(packet model.IpPacket) (bool, 
 func checksumMismatch(packet model.IpPacket) bool {
 	receivedSum := packet.Ipheader.Checksum
 	packet.Ipheader.Checksum = 0
-	//fmt.Println("recv sum:", receivedSum)
-	//fmt.Println("cal sum:", model.IpSum(packet.Ipheader))
 	return receivedSum != model.IpSum(packet.Ipheader)
 }
 
 func dropPacket(packet model.IpPacket, reason string) {
 	// does nothing, simply drops the packet
-	//fmt.Printf("invalid packet received: because %s\n", reason)
 }
 
 func convertToIpPacket(message []byte, protocol int, src model.VirtualIp, dest model.VirtualIp, isToSelf bool) model.IpPacket {
@@ -168,7 +155,3 @@ func convertToIpPacket(message []byte, protocol int, src model.VirtualIp, dest m
 	}
 	return model.MakeIpPacket(message, protocol, src, dest)
 }
-
-// func (accessor *NetworkLayerAccessor) SendRipData(message model.RipMessage, dest model.VirtualIp) {
-//     // to be implemented
-// }=

@@ -1,12 +1,7 @@
 package model
 
 import "errors"
-
 import "sync"
-
-// import "fmt"
-
-// import "sync/atomic"
 
 type RoutingTable struct {
 	RoutingEntries map[VirtualIp]*RoutingEntry
@@ -31,8 +26,6 @@ func (t *RoutingTable) WriteUnLock() {
 }
 func (t *RoutingTable) HasEntry(ip VirtualIp) bool {
 	t.ReadLock()
-	// fmt.Println("[RoutingTable] HasEntry Acquired read lock")
-	// fmt.Println("[RoutingTable] HasEntry relased read lock")
 	defer t.ReadUnLock()
 	if _, ok := t.RoutingEntries[ip]; ok {
 		return true
@@ -43,8 +36,6 @@ func (t *RoutingTable) HasEntry(ip VirtualIp) bool {
 
 func (t *RoutingTable) HasNeighbor(neighbor VirtualIp) bool {
 	t.ReadLock()
-	// fmt.Println("[RoutingTable] HasNeighbor Acquired read lock")
-	// fmt.Println("[RoutingTable] HasNeighbor relased read lock")
 	defer t.ReadUnLock()
 	if _, ok := t.Neighbors[neighbor]; ok {
 		return true
@@ -55,37 +46,25 @@ func (t *RoutingTable) HasNeighbor(neighbor VirtualIp) bool {
 
 func (t *RoutingTable) GetEntry(vip VirtualIp) (*RoutingEntry, error) {
 	var entry RoutingEntry
-	// // fmt.Println("calling hasEntry in GetEntry")
 	if !t.HasEntry(vip) {
-		// // fmt.Println("hasEntry in GetEntry returned")
 		return &entry, errors.New("Invalid State: an entry not in the RoutingTable was requested " + vip.Ip)
 	}
 	t.ReadLock()
-	// fmt.Println("[RoutingTable] GetEntry Acquired read lock")
-	// fmt.Println("[RoutingTable] GetEntry relased read lock")
 	defer t.ReadUnLock()
 	return t.RoutingEntries[vip], nil
 }
 
 func (t *RoutingTable) PutEntry(entry *RoutingEntry) {
-	// fmt.Println("[RoutingTable] PutEntry WANTS write lock")
 	t.WriteLock()
-	// fmt.Println("[RoutingTable] PutEntry ACQUIRED write lock")
 	t.RoutingEntries[entry.Dest] = entry
 	t.WriteUnLock()
-	// fmt.Println("[RoutingTable] PutEntry RELEASED write lock")
 }
 
 func (t *RoutingTable) DeleteEntry(entry *RoutingEntry) {
-	// // fmt.Println("calling hasEntry in DeleteEntry")
 	if t.HasEntry(entry.Dest) {
-		// // fmt.Println("hasEntry returned")
-		// fmt.Println("[RoutingTable] DeleteEntry WANTS write lock")
 		t.WriteLock()
-		// fmt.Println("[RoutingTable] DeleteEntry ACQUIRED write lock")
 		delete(t.RoutingEntries, entry.Dest)
 		t.WriteUnLock()
-		// fmt.Println("[RoutingTable] DeleteEntry RELEASED write lock")
 	}
 }
 
@@ -135,7 +114,6 @@ func (t *RoutingTable) GetAllEntries() []*RoutingEntry {
 }
 
 func (t *RoutingTable) GetUpdatedEntries() []*RoutingEntry {
-	// fmt.Println("[RoutingTable] getUpdatedEntries")
 	t.ReadLock()
 	defer t.ReadUnLock()
 	routingentries := make([]*RoutingEntry, 0)
@@ -144,7 +122,6 @@ func (t *RoutingTable) GetUpdatedEntries() []*RoutingEntry {
 			routingentries = append(routingentries, v)
 		}
 	}
-	// fmt.Println("[RoutingTable] getUpdatedEntries DONE")
 	return routingentries
 }
 
@@ -163,12 +140,9 @@ func (t *RoutingTable) GetExpiredEntries() []*RoutingEntry {
 func (t *RoutingTable) ExpireRoutesByExitIp(ip VirtualIp) {
 	for _, v := range t.RoutingEntries {
 		if v.ExitIp == ip && !v.Expired() {
-			// fmt.Println("[RoutingTable] ExpireRoutesByExitIp WANTS write lock")
 			t.WriteLock()
-			// fmt.Println("[RoutingTable] ExpireRoutesByExitIp ACQUIRED write lock")
 			v.MarkAsExpired()
 			t.WriteUnLock()
-			// fmt.Println("[RoutingTable] ExpireRoutesByExitIp RELEASED write lock")
 		}
 	}
 }
