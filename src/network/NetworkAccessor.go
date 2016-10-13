@@ -70,11 +70,8 @@ func (accessor *NetworkAccessor) Send(request model.SendMessageRequest, chToLink
 		nextHop = dest
 		exitIp, _ = accessor.routingTable.GetNeighbor(dest)
 	} else {
-		fmt.Println(request)
-		fmt.Println("Cannot reach this destination!")
 		return
 	}
-
 
 	if toSelf && !localDelivery {
 		// the packet is intended for the local node but the destination VIP is unreachable
