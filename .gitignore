@@ -2,3 +2,4 @@
 bignet/node
 *.log
 *.net
+.metadata*
