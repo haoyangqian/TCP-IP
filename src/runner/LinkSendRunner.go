@@ -1,7 +1,7 @@
 package runner
 
-import "../model"
-import "../network"
+import "model"
+import "network"
 
 type LinkSendRunner struct {
 	linkAccessor network.LinkAccessor

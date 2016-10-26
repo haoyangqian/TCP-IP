@@ -1,8 +1,8 @@
 package runner
 
 // import "fmt"
-import "../model"
-import "../network"
+import "model"
+import "network"
 
 type NetworkRunner struct {
 	networkAccessor network.NetworkAccessor

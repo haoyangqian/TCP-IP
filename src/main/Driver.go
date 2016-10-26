@@ -7,8 +7,8 @@ import "strings"
 import "text/tabwriter"
 
 import (
-	"./factory"
-	"./model"
+	"factory"
+	"model"
 	"net"
 	"sort"
 	"strconv"
@@ -20,11 +20,10 @@ var service string
 
 func ReadLnx(filename string) map[model.VirtualIp]*model.NodeInterface {
 	interfaces := make(map[model.VirtualIp]*model.NodeInterface)
-	if file, err := os.Open(os.Args[1]); err == nil {
+	if file, err := os.Open(filename); err == nil {
 
 		// make sure it gets closed
 		defer file.Close()
-
 		// create a new scanner and read the file line by line
 		scanner := bufio.NewScanner(file)
 		id_counter := 0
@@ -172,7 +171,7 @@ func PrintHelp() {
 
 func main() {
 	link_file := os.Args[1]
-
+	//link_file := "src.lnx"
 	interfaces := ReadLnx(link_file)
 
 	table := SetRoutingtable(interfaces)

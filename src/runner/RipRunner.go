@@ -1,10 +1,10 @@
 package runner
 
-import "../model"
+import "model"
 import "time"
 
 // import "fmt"
-import "../network"
+import "network"
 
 type RipRunner struct {
 	ripHandler network.RipHandler

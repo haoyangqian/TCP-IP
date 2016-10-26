@@ -1,6 +1,6 @@
 package network
 
-import "../model"
+import "model"
 
 type NetworkHandler interface {
 	Handle(packet model.IpPacket, receivedFrom model.VirtualIp)

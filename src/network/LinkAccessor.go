@@ -1,8 +1,8 @@
 package network
 
 import (
-	"../model"
-	"../util"
+	"model"
+	"util"
 	"errors"
 	"fmt"
 	"net"

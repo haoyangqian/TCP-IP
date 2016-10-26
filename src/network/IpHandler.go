@@ -1,7 +1,7 @@
 package network
 
 import "fmt"
-import "../model"
+import "model"
 
 type IpHandler struct {
 }

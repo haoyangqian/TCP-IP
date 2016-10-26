@@ -1,8 +1,8 @@
 package factory
 
-import "../model"
-import "../network"
-import "../runner"
+import "model"
+import "network"
+import "runner"
 
 type ResourceFactory struct {
 	routingTable       model.RoutingTable

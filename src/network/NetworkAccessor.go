@@ -1,6 +1,6 @@
 package network
 
-import "../model"
+import "model"
 import "fmt"
 
 type NetworkAccessor struct {
