@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"sync"
+	"transport"
 )
 
 //global variable
@@ -228,8 +229,8 @@ func main() {
 				}
 				dstIp := tokens[1]
 				prot, _ := strconv.Atoi(tokens[2])
-				payload := tokens[3]
-
+				h := MakeTcpHeader(5555, 6666, 0, 0, 0, 0, 10)
+				payload := MakeTcpPacket(tokens[3], h)
 				request := model.MakeSendMessageRequest([]byte(payload), prot, model.VirtualIp{dstIp})
 				factory.MessageChannel() <- request
 			}

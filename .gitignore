@@ -3,3 +3,6 @@ bignet/node
 *.log
 *.net
 .metadata*
+demo/
+.settings/
+bin/.nfs*

@@ -20,7 +20,6 @@ func (accessor *NetworkAccessor) RegisterHandler(protocol int, handler NetworkHa
 func (accessor *NetworkAccessor) ReceiveAndHandle(result model.LinkReceiveResult, chToForward chan<- model.SendPacketRequest) {
 	packet := result.Packet
 	receivedFrom := result.ReceivedFrom
-
 	shouldDrop, reason := accessor.ShouldDropPacket(packet)
 	if shouldDrop {
 		dropPacket(packet, reason)

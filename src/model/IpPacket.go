@@ -1,9 +1,9 @@
 package model
 
 import (
-    "ipv4"
 	"encoding/binary"
 	"fmt"
+	"ipv4"
 	"net"
 )
 
