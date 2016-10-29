@@ -5,7 +5,7 @@ import (
 )
 
 type TcpPacket struct {
-	tcpheader TCPHeader
+	Tcpheader TCPHeader
 	Payload   []byte
 }
 
@@ -14,12 +14,12 @@ func MakeTcpPacket(message []byte, h TCPHeader) TcpPacket {
 }
 
 func (Tcp *TcpPacket) TcpPacketString() string {
-	returnstring := fmt.Sprintf("  src_port:   %d\n  dst_port:   %d\n   payload:  %s\n", Tcp.tcpheader.Source, Tcp.tcpheader.Destination, string(Tcp.Payload[:]))
+	returnstring := fmt.Sprintf("  src_port:   %d\n  dst_port:   %d\n   payload:  %s\n", Tcp.Tcpheader.Source, Tcp.Tcpheader.Destination, string(Tcp.Payload[:]))
 	return returnstring
 }
 
 func (Tcp *TcpPacket) ConvertToBuffer() []byte {
-	buffer := Tcp.tcpheader.Marshal()
+	buffer := Tcp.Tcpheader.Marshal()
 	buffer = append(buffer, Tcp.Payload...)
 	return buffer
 }

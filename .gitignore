@@ -5,6 +5,6 @@ bignet/node
 .metadata*
 demo/
 .settings/
-bin/.nfs*
+bin/
 /**/*.a
 pkg/

@@ -15,17 +15,17 @@ const (
 )
 
 type TCPHeader struct {
-	Source      uint16
-	Destination uint16
-	SeqNum      uint32
-	AckNum      uint32
-	DataOffset  uint8 // 4 bits
-	Reserved    uint8 // 3 bits
-	ECN         uint8 // 3 bits
-	Ctrl        uint8 // 6 bits
-	Window      uint16
-	Checksum    uint16 // Kernel will set this if it's 0
-	Urgent      uint16
+	Source      int //uint16
+	Destination int //uint16
+	SeqNum      int //uint32
+	AckNum      int //uint32
+	DataOffset  int //uint8 // 4 bits
+	Reserved    int //uint8 // 3 bits
+	ECN         int //uint8 // 3 bits
+	Ctrl        int //uint8 // 6 bits
+	Window      int //uint16
+	Checksum    int //uint16 // Kernel will set this if it's 0
+	Urgent      int //uint16
 	Options     []TCPOption
 }
 
@@ -35,7 +35,7 @@ type TCPOption struct {
 	Data   []byte
 }
 
-func (tcp *TCPHeader) HasFlag(flagBit byte) bool {
+func (tcp *TCPHeader) HasFlag(flagBit int) bool {
 	return tcp.Ctrl&flagBit != 0
 }
 
@@ -47,15 +47,15 @@ func MakeTcpHeader(srcport int,
 	ctrl int,
 	ws int) TCPHeader {
 	h := TCPHeader{
-		Source:      uint16(srcport),
-		Destination: uint16(dstport),
-		SeqNum:      uint32(seqnum),
-		AckNum:      uint32(acknum),
-		DataOffset:  uint8(5),
-		ECN:         uint8(ecn),
-		Ctrl:        uint8(ctrl),
-		Window:      uint16(ws),
-		Checksum:    uint16(0),
+		Source:      srcport,
+		Destination: dstport,
+		SeqNum:      seqnum,
+		AckNum:      acknum,
+		DataOffset:  5,
+		ECN:         ecn,
+		Ctrl:        ctrl,
+		Window:      ws,
+		Checksum:    0,
 		Options:     []TCPOption{},
 	}
 	return h
@@ -64,10 +64,10 @@ func MakeTcpHeader(srcport int,
 func (tcp *TCPHeader) Marshal() []byte {
 
 	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.BigEndian, tcp.Source)
-	binary.Write(buf, binary.BigEndian, tcp.Destination)
-	binary.Write(buf, binary.BigEndian, tcp.SeqNum)
-	binary.Write(buf, binary.BigEndian, tcp.AckNum)
+	binary.Write(buf, binary.BigEndian, uint16(tcp.Source))
+	binary.Write(buf, binary.BigEndian, uint16(tcp.Destination))
+	binary.Write(buf, binary.BigEndian, uint32(tcp.SeqNum))
+	binary.Write(buf, binary.BigEndian, uint32(tcp.AckNum))
 
 	var mix uint16
 	mix = uint16(tcp.DataOffset)<<12 | // top 4 bits
@@ -75,9 +75,9 @@ func (tcp *TCPHeader) Marshal() []byte {
 		uint16(tcp.ECN)<<6 | // 3 bits
 		uint16(tcp.Ctrl) // bottom 6 bits
 	binary.Write(buf, binary.BigEndian, mix)
-	binary.Write(buf, binary.BigEndian, tcp.Window)
-	binary.Write(buf, binary.BigEndian, tcp.Checksum)
-	binary.Write(buf, binary.BigEndian, tcp.Urgent)
+	binary.Write(buf, binary.BigEndian, uint16(tcp.Window))
+	binary.Write(buf, binary.BigEndian, uint16(tcp.Checksum))
+	binary.Write(buf, binary.BigEndian, uint16(tcp.Urgent))
 
 	for _, option := range tcp.Options {
 		binary.Write(buf, binary.BigEndian, option.Kind)
@@ -102,21 +102,35 @@ func (tcp *TCPHeader) Marshal() []byte {
 func Unmarshal(data []byte) *TCPHeader {
 	var tcp TCPHeader
 	r := bytes.NewReader(data)
-	binary.Read(r, binary.BigEndian, &tcp.Source)
-	binary.Read(r, binary.BigEndian, &tcp.Destination)
-	binary.Read(r, binary.BigEndian, &tcp.SeqNum)
-	binary.Read(r, binary.BigEndian, &tcp.AckNum)
+	var src uint16
+	var dst uint16
+	var seq uint32
+	var ack uint32
+	binary.Read(r, binary.BigEndian, &src)
+	binary.Read(r, binary.BigEndian, &dst)
+	binary.Read(r, binary.BigEndian, &seq)
+	binary.Read(r, binary.BigEndian, &ack)
+	tcp.Source = int(src)
+	tcp.Destination = int(dst)
+	tcp.SeqNum = int(seq)
+	tcp.AckNum = int(ack)
 
 	var mix uint16
 	binary.Read(r, binary.BigEndian, &mix)
-	tcp.DataOffset = byte(mix >> 12)  // top 4 bits
-	tcp.Reserved = byte(mix >> 9 & 7) // 3 bits
-	tcp.ECN = byte(mix >> 6 & 7)      // 3 bits
-	tcp.Ctrl = byte(mix & 0x3f)       // bottom 6 bits
+	tcp.DataOffset = int(mix >> 12)  // top 4 bits
+	tcp.Reserved = int(mix >> 9 & 7) // 3 bits
+	tcp.ECN = int(mix >> 6 & 7)      // 3 bits
+	tcp.Ctrl = int(mix & 0x3f)       // bottom 6 bits
 
-	binary.Read(r, binary.BigEndian, &tcp.Window)
-	binary.Read(r, binary.BigEndian, &tcp.Checksum)
-	binary.Read(r, binary.BigEndian, &tcp.Urgent)
+	var window uint16
+	var checksum uint16
+	var urgent uint16
+	binary.Read(r, binary.BigEndian, &window)
+	binary.Read(r, binary.BigEndian, &checksum)
+	binary.Read(r, binary.BigEndian, &urgent)
+	tcp.Window = int(window)
+	tcp.Checksum = int(checksum)
+	tcp.Urgent = int(urgent)
 
 	return &tcp
 }
