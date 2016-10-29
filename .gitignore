@@ -6,3 +6,5 @@ bignet/node
 demo/
 .settings/
 bin/.nfs*
+/**/*.a
+pkg/
