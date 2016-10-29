@@ -49,14 +49,14 @@ func MakeTcpHeader(srcport int,
 	h := TCPHeader{
 		Source:      uint16(srcport),
 		Destination: uint16(dstport),
-		SeqNum:      seqnum,
-		AckNum:      acknum,
+		SeqNum:      uint32(seqnum),
+		AckNum:      uint32(acknum),
 		DataOffset:  uint8(5),
 		ECN:         uint8(ecn),
 		Ctrl:        uint8(ctrl),
 		Window:      uint16(ws),
 		Checksum:    uint16(0),
-		Options:     []byte{},
+		Options:     []TCPOption{},
 	}
 	return h
 }

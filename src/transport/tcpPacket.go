@@ -1,9 +1,7 @@
 package transport
 
 import (
-	"encoding/binary"
 	"fmt"
-	"net"
 )
 
 type TcpPacket struct {
@@ -21,19 +19,13 @@ func (Tcp *TcpPacket) TcpPacketString() string {
 }
 
 func (Tcp *TcpPacket) ConvertToBuffer() []byte {
-	buffer, error := Tcp.tcpheader.Marshal()
-	if error != nil {
-		fmt.Println(error)
-	}
+	buffer := Tcp.tcpheader.Marshal()
 	buffer = append(buffer, Tcp.Payload...)
 	return buffer
 }
 
 func ConvertToTcpPacket(buffer []byte) TcpPacket {
-	tcpHeader, error := Unmarshal(buffer[0:20])
-	if error != nil {
-		fmt.Println(error)
-	}
+	tcpHeader := Unmarshal(buffer[0:20])
 	index := 4 * int(tcpHeader.DataOffset)
 	payload := buffer[index:]
 	return TcpPacket{*tcpHeader, payload}

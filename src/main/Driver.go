@@ -229,9 +229,9 @@ func main() {
 				}
 				dstIp := tokens[1]
 				prot, _ := strconv.Atoi(tokens[2])
-				h := MakeTcpHeader(5555, 6666, 0, 0, 0, 0, 10)
-				payload := MakeTcpPacket(tokens[3], h)
-				request := model.MakeSendMessageRequest([]byte(payload), prot, model.VirtualIp{dstIp})
+				h := transport.MakeTcpHeader(5555, 6666, 0, 0, 0, 0, 10)
+				payload := transport.MakeTcpPacket([]byte(tokens[3]), h)
+				request := model.MakeSendMessageRequest(payload.ConvertToBuffer(), prot, model.VirtualIp{dstIp})
 				factory.MessageChannel() <- request
 			}
 		case "interfaces":
