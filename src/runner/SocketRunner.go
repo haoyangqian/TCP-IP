@@ -13,12 +13,12 @@ type SocketRunner struct {
 }
 
 func (runner *SocketRunner) run() {
-	for {
-		select {
-		case packet := <-runner.RecvFromIpCh:
-			runner.socket.recv(packet)
-		case request := <-runner.RecvFromDriverCh:
-			runner.socket.send(request, runner.SendToIpCh)
-		}
-	}
+	//	for {
+	//		select {
+	//		case packet := <-runner.RecvFromIpCh:
+	//			//runner.socket.recv(packet)
+	//		case request := <-runner.RecvFromDriverCh:
+	//			//runner.socket.send(request, runner.SendToIpCh)
+	//		}
+	//	}
 }

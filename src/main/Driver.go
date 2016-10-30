@@ -161,13 +161,35 @@ func PrintRoutingtableall(table model.RoutingTable) {
 }
 
 func PrintHelp() {
-	println("Commands:")
-	println("up <id>                         - enable interface with id")
-	println("down <id>                       - disable interface with id")
-	println("send <dst_ip> <prot> <payload>  - send ip packet to <dst_ip> using prot <prot>")
-	println("interfaces                      - list interfaces")
-	println("routes                          - list routing table rows")
-	println("help                            - show this help")
+	fmt.Println("Commands:")
+	fmt.Println("accept [port]                        - Spawn a socket, bind it to the given port,")
+	fmt.Println("                                       and start accepting connections on that port.")
+	fmt.Println("connect [ip] [port]                  - Attempt to connect to the given ip address,")
+	fmt.Println("                                       in dot notation, on the given port.")
+	fmt.Println("send [socket] [data]                 - Send a string on a socket.")
+	fmt.Println("recv [socket] [numbytes] [y/n]       - Try to read data from a given socket. If")
+	fmt.Println("                                       the last argument is y, then you should")
+	fmt.Println("                                       block until numbytes is received, or the")
+	fmt.Println("                                       connection closes. If n, then don.t block;")
+	fmt.Println("                                       return whatever recv returns. Default is n.")
+	fmt.Println("sendfile [filename] [ip] [port]      - Connect to the given ip and port, send the")
+	fmt.Println("                                       entirety of the specified file, and close")
+	fmt.Println("                                       the connection.")
+	fmt.Println("recvfile [filename] [port]           - Listen for a connection on the given port.")
+	fmt.Println("                                       Once established, write everything you can")
+	fmt.Println("                                       read from the socket to the given file.")
+	fmt.Println("                                       Once the other side closes the connection,")
+	fmt.Println("                                       close the connection as well.")
+	fmt.Println("shutdown [socket] [read/write/both]  - v_shutdown on the given socket.")
+	fmt.Println("close [socket]                       - v_close on the given socket.")
+	fmt.Println("up [id]                              - enable interface with id")
+	fmt.Println("down [id]                            - disable interface with id")
+	fmt.Println("interfaces                           - list interfaces")
+	fmt.Println("routes                               - list routing table rows")
+	fmt.Println("sockets                              - list sockets (fd, ip, port, state)")
+	fmt.Println("window [socket]                      - lists window sizes for socket")
+	fmt.Println("quit                                 - no cleanup, exit(0)")
+	fmt.Println("help                                 - show this help")
 }
 
 func main() {
@@ -184,7 +206,7 @@ func main() {
 	networkRunner := factory.NetworkRunner()
 	ripRunner := factory.RipRunner()
 	interfaceTable := factory.NodeInterfaceTable()
-
+	socketmanager := transport.MakeSocketManager(interfaces)
 	var wg sync.WaitGroup
 	wg.Add(4)
 	go networkRunner.Run()
@@ -199,6 +221,25 @@ func main() {
 		tokens := strings.Split(line, " ")
 		command := strings.ToLower(tokens[0])
 		switch command {
+		case "sockets":
+			socketmanager.PrintSockets()
+		case "accept":
+			if len(tokens) != 2 || tokens[1] == "\n" {
+				fmt.Println("syntax error(usage: accept [port])")
+				break
+			}
+			port, _ := strconv.Atoi(tokens[1])
+			socketfd := socketmanager.V_socket()
+			_, err := socketmanager.V_bind(socketfd, model.VirtualIp{}, port)
+			if err != nil {
+				fmt.Println(err)
+				break
+			}
+			//v_listen()
+
+		case "connect":
+			//dstIp := tokens[1]
+			//port, _ := strconv.Atoi(tokens[2])
 		case "up":
 			id, _ := strconv.Atoi(tokens[1])
 

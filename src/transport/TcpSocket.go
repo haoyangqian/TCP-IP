@@ -6,8 +6,8 @@ import (
 
 type TcpSocket struct {
 	//sm
-	fd     int
-	addr   SocketAddr
+	Fd     int
+	Addr   SocketAddr
 	Buffer []byte
 
 	//	  sm StateMachine
@@ -16,11 +16,20 @@ type TcpSocket struct {
 	//    sm.Transit()
 	//    sm.Transit(RecvCtrl, SentCtrl)
 
-	SendCh chan<- transport.SendTcpMessageRequest
-	RecvCh <-chan model.IpPacket //receive Ip packet from Ip layer
+	SendCh chan<- SendTcpMessageRequest
+	RecvCh chan model.IpPacket //receive Ip packet from Ip layer
 }
 
-func (socket *TcpSocket) Send(request transport.SendTcpMessageRequest, ch chan<- model.SendMessageRequest) {
+func MakeSocket(fd int, SendCh chan<- SendTcpMessageRequest, RecvCh chan model.IpPacket) TcpSocket {
+	buffer := make([]byte, 0)
+	return TcpSocket{fd, SocketAddr{model.VirtualIp{"0.0.0.0"}, 0, model.VirtualIp{"0.0.0.0"}, 0}, buffer, SendCh, RecvCh}
+}
+
+func (socket *TcpSocket) SetAddr(addr SocketAddr) {
+	socket.Addr = addr
+}
+
+func (socket *TcpSocket) Send(request SendTcpMessageRequest, ch chan<- model.SendMessageRequest) {
 	// put together a TCP packet
 	// marshal TCP packet into bytes (message)
 	// construct SendMessageRequest
@@ -35,7 +44,7 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 
 func (socket *TcpSocket) ReadFromBuffer(bytes int, block bool) []byte {
 	if block {
-		for len(socket.Buffer) < int {
+		for len(socket.Buffer) < bytes {
 			// if connection closes, break
 		}
 
