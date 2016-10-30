@@ -43,7 +43,6 @@ func MakeTcpHeader(srcport int,
 	dstport int,
 	seqnum int,
 	acknum int,
-	ecn int,
 	ctrl int,
 	ws int) TCPHeader {
 	h := TCPHeader{
@@ -52,7 +51,6 @@ func MakeTcpHeader(srcport int,
 		SeqNum:      seqnum,
 		AckNum:      acknum,
 		DataOffset:  5,
-		ECN:         ecn,
 		Ctrl:        ctrl,
 		Window:      ws,
 		Checksum:    0,
@@ -136,7 +134,7 @@ func Unmarshal(data []byte) *TCPHeader {
 }
 
 // TCP Checksum
-func Csum(data []byte, srcip, dstip [4]byte) uint16 {
+func Csum(data []byte, srcip, dstip []byte) uint16 {
 
 	pseudoHeader := []byte{
 		srcip[0], srcip[1], srcip[2], srcip[3],

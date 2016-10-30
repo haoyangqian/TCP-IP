@@ -14,6 +14,7 @@ type SocketManager struct {
 	interfacetable  map[model.VirtualIp]bool
 	fdcount         int
 	portcount       int
+	sendtoipch      chan<- model.SendMessageRequest
 }
 
 type SocketAddr struct {
@@ -108,6 +109,10 @@ func (manager *SocketManager) V_listen(socket int) int {
 }
 
 func (manager *SocketManager) V_connect(socket int, addr model.VirtualIp, port int) int {
+	//socket.setaddr()
+	//socket.sendsyn()
+	//sm.transit(OPEN_ACTIVE)
+
 	return 0
 }
 

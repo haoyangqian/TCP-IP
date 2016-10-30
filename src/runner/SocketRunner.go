@@ -6,19 +6,21 @@ import (
 )
 
 type SocketRunner struct {
-	socket           transport.TcpSocket
-	SendToIpCh       chan<- model.SendMessageRequest //send request to IP layer
-	RecvFromIpCh     <-chan model.IpPacket
-	RecvFromDriverCh <-chan transport.SendTcpMessageRequest
+	SM           transport.SocketManager
+	RecvFromIpCh <-chan model.IpPacket
 }
 
+func MakeSocketRunner(sm transport.SocketManager,
+	recvfromipch <-chan model.IpPacket) SocketRunner {
+	return SocketRunner{sm, recvfromipch}
+}
 func (runner *SocketRunner) run() {
-	//	for {
-	//		select {
-	//		case packet := <-runner.RecvFromIpCh:
-	//			//runner.socket.recv(packet)
-	//		case request := <-runner.RecvFromDriverCh:
-	//			//runner.socket.send(request, runner.SendToIpCh)
-	//		}
-	//	}
+	for {
+		select {
+		case packet := <-runner.RecvFromIpCh:
+			runner.socket.Recv(packet)
+		case request := <-runner.RecvFromDriverCh:
+			runner.socket.Send(request, runner.SendToIpCh)
+		}
+	}
 }

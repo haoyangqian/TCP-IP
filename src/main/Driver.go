@@ -213,7 +213,7 @@ func main() {
 	go linkSendRunner.Run()
 	go linkReceiveRunner.Run()
 	go ripRunner.Run()
-
+	//go
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Print("> ")
 	for scanner.Scan() {
@@ -270,7 +270,7 @@ func main() {
 				}
 				dstIp := tokens[1]
 				prot, _ := strconv.Atoi(tokens[2])
-				h := transport.MakeTcpHeader(5555, 6666, 0, 0, 0, 0, 10)
+				h := transport.MakeTcpHeader(5555, 6666, 0, 0, 0, 10)
 				payload := transport.MakeTcpPacket([]byte(tokens[3]), h)
 				request := model.MakeSendMessageRequest(payload.ConvertToBuffer(), prot, model.VirtualIp{dstIp})
 				factory.MessageChannel() <- request

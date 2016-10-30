@@ -1,6 +1,8 @@
 package transport
 
 import (
+	"fmt"
+	"math/rand"
 	"model"
 )
 
@@ -29,17 +31,39 @@ func (socket *TcpSocket) SetAddr(addr SocketAddr) {
 	socket.Addr = addr
 }
 
+/*
+function : send syn to remote addr:port
+
+*/
+func (socket *TcpSocket) SendSyn(laddr, raddr model.VirtualIp, lport, rport int) (int, error) {
+
+	tcpheader := MakeTcpHeader(lport, rport, int(rand.Uint32()), 0, 2, 0xaaaa)
+	tcppacket := MakeTcpPacket([]byte{}, tcpheader)
+	data := tcppacket.ConvertToBuffer()
+	tcppacket.Tcpheader.Checksum = int(Csum(data, laddr.Vip2Int(), raddr.Vip2Int()))
+	data = tcppacket.ConvertToBuffer()
+
+	request := SendTcpMessageRequest{socket.Fd, data}
+	socket.SendCh <- request
+
+	return 1, nil
+}
+
 func (socket *TcpSocket) Send(request SendTcpMessageRequest, ch chan<- model.SendMessageRequest) {
 	// put together a TCP packet
 	// marshal TCP packet into bytes (message)
 	// construct SendMessageRequest
 	// ch <- request
+
+	messagerequest := model.MakeSendMessageRequest(request.Payload, 0, socket.Addr.RemoteIp)
+	ch <- messagerequest
 }
 
 func (socket *TcpSocket) Recv(packet model.IpPacket) {
 	// unmarshall into TCP packet
 	// recv
-
+	tcppacket := ConvertToTcpPacket(packet.Payload)
+	fmt.Println(tcppacket.TcpPacketString())
 }
 
 func (socket *TcpSocket) ReadFromBuffer(bytes int, block bool) []byte {
