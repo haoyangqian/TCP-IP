@@ -7,10 +7,12 @@ import (
 )
 
 type TcpSocket struct {
-	//sm
 	Fd     int
 	Addr   SocketAddr
 	Buffer []byte
+
+	StateMachine TcpStateMachine
+	SendToIpCh   chan<- model.SendMessageRequest
 
 	//	  sm StateMachine
 	//    sm.CurrentState()
@@ -18,13 +20,13 @@ type TcpSocket struct {
 	//    sm.Transit()
 	//    sm.Transit(RecvCtrl, SentCtrl)
 
-	SendCh chan<- SendTcpMessageRequest
-	RecvCh chan model.IpPacket //receive Ip packet from Ip layer
+	//	SendCh chan<- SendTcpMessageRequest
+	//	RecvCh chan model.IpPacket //receive Ip packet from Ip layer
 }
 
-func MakeSocket(fd int, SendCh chan<- SendTcpMessageRequest, RecvCh chan model.IpPacket) TcpSocket {
+func MakeSocket(fd int, fsm TcpStateMachine, ch chan<- model.SendMessageRequest) TcpSocket {
 	buffer := make([]byte, 0)
-	return TcpSocket{fd, SocketAddr{model.VirtualIp{"0.0.0.0"}, 0, model.VirtualIp{"0.0.0.0"}, 0}, buffer, SendCh, RecvCh}
+	return TcpSocket{fd, SocketAddr{model.VirtualIp{"0.0.0.0"}, 0, model.VirtualIp{"0.0.0.0"}, 0}, buffer, fsm, ch}
 }
 
 func (socket *TcpSocket) SetAddr(addr SocketAddr) {
@@ -36,15 +38,14 @@ function : send syn to remote addr:port
 
 */
 func (socket *TcpSocket) SendSyn(laddr, raddr model.VirtualIp, lport, rport int) (int, error) {
-
 	tcpheader := MakeTcpHeader(lport, rport, int(rand.Uint32()), 0, 2, 0xaaaa)
 	tcppacket := MakeTcpPacket([]byte{}, tcpheader)
 	data := tcppacket.ConvertToBuffer()
 	tcppacket.Tcpheader.Checksum = int(Csum(data, laddr.Vip2Int(), raddr.Vip2Int()))
 	data = tcppacket.ConvertToBuffer()
 
-	request := SendTcpMessageRequest{socket.Fd, data}
-	socket.SendCh <- request
+	request := model.MakeSendMessageRequest(data, model.TRANSPORT_PROTOCOL, raddr)
+	socket.SendToIpCh <- request
 
 	return 1, nil
 }

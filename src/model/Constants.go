@@ -2,6 +2,7 @@ package model
 
 // handler protocols
 const TEST_DATA_PROTOCOL = 0
+const TRANSPORT_PROTOCOL = 0
 const RIP_PROTOCOL = 200
 
 // IP header

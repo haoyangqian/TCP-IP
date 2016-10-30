@@ -201,18 +201,23 @@ func main() {
 
 	factory := factory.InitializeResourceFactory(table, interfaces, service)
 
+	interfaceTable := factory.NodeInterfaceTable()
+
 	linkReceiveRunner := factory.LinkReceiveRunner()
 	linkSendRunner := factory.LinkSendRunner()
 	networkRunner := factory.NetworkRunner()
 	ripRunner := factory.RipRunner()
-	interfaceTable := factory.NodeInterfaceTable()
-	socketmanager := transport.MakeSocketManager(interfaces)
+
+	socketmanager := factory.SocketManager()
+	socketRunner := factory.SocketRunner()
+
 	var wg sync.WaitGroup
-	wg.Add(4)
+	wg.Add(5)
 	go networkRunner.Run()
 	go linkSendRunner.Run()
 	go linkReceiveRunner.Run()
 	go ripRunner.Run()
+	go socketRunner.Run()
 	//go
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Print("> ")
@@ -235,7 +240,7 @@ func main() {
 				fmt.Println(err)
 				break
 			}
-			//v_listen()
+			socketmanager.V_listen(socketfd)
 
 		case "connect":
 			//dstIp := tokens[1]
@@ -287,6 +292,8 @@ func main() {
 			PrintNeighbors(table)
 		case "help":
 			PrintHelp()
+		case "tsm":
+			transport.TestStateMachine()
 		default:
 			PrintHelp()
 

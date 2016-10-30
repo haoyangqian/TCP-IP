@@ -12,9 +12,10 @@ type SocketManager struct {
 	socketMapByFd   map[int]*TcpSocket
 	socketMapByAddr map[SocketAddr]*TcpSocket
 	interfacetable  map[model.VirtualIp]bool
+	fsmBuilder      TcpStateMachineBuilder
 	fdcount         int
 	portcount       int
-	sendtoipch      chan<- model.SendMessageRequest
+	sendToIpCh      chan<- model.SendMessageRequest
 }
 
 type SocketAddr struct {
@@ -29,19 +30,19 @@ func (manager *SocketManager) PrintSockets() {
 	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
 	fmt.Fprintf(w, "socket\tlocal-addr\tport\tdst-addr\t\tport\tstatus\n")
 	for k, v := range manager.socketMapByFd {
-		fmt.Fprintf(w, "%d\t%s\t%d\t%s\t\t%d\n", k, v.Addr.LocalIp.Ip, v.Addr.LocalPort, v.Addr.RemoteIp.Ip, v.Addr.RemotePort)
+		fmt.Fprintf(w, "%d\t%s\t%d\t%s\t\t%d\t%s\n", k, v.Addr.LocalIp.Ip, v.Addr.LocalPort, v.Addr.RemoteIp.Ip, v.Addr.RemotePort, v.StateMachine.CurrentState().Name)
 	}
 	w.Flush()
 }
 
-func MakeSocketManager(interfaces map[model.VirtualIp]*model.NodeInterface) SocketManager {
+func MakeSocketManager(interfaces map[model.VirtualIp]*model.NodeInterface, fsmBuilder TcpStateMachineBuilder, sendToIpCh chan<- model.SendMessageRequest) SocketManager {
 	socketmapfd := make(map[int]*TcpSocket)
 	socketmapaddr := make(map[SocketAddr]*TcpSocket)
 	interfacetable := make(map[model.VirtualIp]bool)
 	for k, _ := range interfaces {
 		interfacetable[k] = true
 	}
-	return SocketManager{socketmapfd, socketmapaddr, interfacetable, 0, 1024}
+	return SocketManager{socketmapfd, socketmapaddr, interfacetable, fsmBuilder, 0, 1024, sendToIpCh}
 }
 
 func (manager *SocketManager) GetSocketByAddr(addr SocketAddr) (*TcpSocket, error) {
@@ -71,11 +72,12 @@ func (manager *SocketManager) GetAvailableInterface(port int) (model.VirtualIp, 
 }
 
 func (manager *SocketManager) V_socket() int {
-	sendch := make(chan SendTcpMessageRequest)
-	recvch := make(chan model.IpPacket)
 	//create a new socket
 	manager.fdcount += 1
-	socket := MakeSocket(manager.fdcount, sendch, recvch)
+
+	stateMachine := manager.fsmBuilder.Build()
+	socket := MakeSocket(manager.fdcount, stateMachine, manager.sendToIpCh)
+
 	manager.socketMapByFd[manager.fdcount] = &socket
 	return manager.fdcount
 }
@@ -105,6 +107,8 @@ func (manager *SocketManager) V_bind(socketfd int, addr model.VirtualIp, port in
 }
 
 func (manager *SocketManager) V_listen(socket int) int {
+	v, _ := manager.GetSocketByFd(socket)
+	v.StateMachine.Transit(TCP_PASSIVE_OPEN)
 	return 0
 }
 
