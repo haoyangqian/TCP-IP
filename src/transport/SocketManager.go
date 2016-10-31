@@ -74,15 +74,15 @@ func (manager *SocketManager) GetAvailableInterface(port int) (model.VirtualIp, 
 
 func (manager *SocketManager) V_socket() int {
 	//create a new socket
-	fmt.Println("****")
+	//fmt.Println("****")
 	manager.PrintSockets()
 	manager.fdcount += 1
-	fmt.Println("fdcount:", manager.fdcount)
+	//fmt.Println("fdcount:", manager.fdcount)
 	stateMachine := manager.fsmBuilder.Build()
 	socket := MakeSocket(manager.fdcount, stateMachine, manager.sendToIpCh)
 
 	manager.socketMapByFd[manager.fdcount] = &socket
-	manager.PrintSockets()
+	//manager.PrintSockets()
 	return manager.fdcount
 }
 
@@ -95,7 +95,7 @@ func (manager *SocketManager) V_bind(socketfd int, addr model.VirtualIp, port in
 
 	//if addr is nil/not specified, bind to any available interface
 	if addr.Ip == "" {
-		//if port is -1, choose portcount;
+		//if port is -1, choose a port from 1024 - 65535;
 		if port == -1 {
 			port = manager.portcount
 			for {
@@ -125,7 +125,7 @@ func (manager *SocketManager) V_bind(socketfd int, addr model.VirtualIp, port in
 	//check if this addr is available
 	socketaddr := SocketAddr{addr, port, model.VirtualIp{"0.0.0.0"}, 0}
 	socket.SetAddr(socketaddr)
-	fmt.Println("bind addr:", socketaddr)
+	//fmt.Println("bind addr:", socketaddr)
 	manager.socketMapByAddr[socketaddr] = socket
 	return 0, nil
 }

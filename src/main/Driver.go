@@ -233,7 +233,9 @@ func main() {
 				fmt.Println("syntax error(usage: accept [port])")
 				break
 			}
+			//if port is larger than 65535
 			port, _ := strconv.Atoi(tokens[1])
+			port = port % 65535
 			socketfd := socketmanager.V_socket()
 			_, err := socketmanager.V_bind(socketfd, model.VirtualIp{}, port)
 			if err != nil {
