@@ -44,7 +44,7 @@ func (socket *TcpSocket) SendCtrl(Ctrl int, laddr model.VirtualIp, lport int, ra
 	tcppacket.Tcpheader.Checksum = int(Csum(data, laddr.Vip2Int(), raddr.Vip2Int()))
 	data = tcppacket.ConvertToBuffer()
 
-	request := model.MakeSendMessageRequest(data, model.TRANSPORT_PROTOCOL, raddr)
+	request := model.MakeSendMessageRequestWithSrc(data, model.TRANSPORT_PROTOCOL, laddr, raddr)
 	socket.SendToIpCh <- request
 
 	return 1, nil
@@ -56,7 +56,7 @@ func (socket *TcpSocket) Send(request SendTcpMessageRequest, ch chan<- model.Sen
 	// construct SendMessageRequest
 	// ch <- request
 
-	messagerequest := model.MakeSendMessageRequest(request.Payload, 0, socket.Addr.RemoteIp)
+	messagerequest := model.MakeSendMessageRequestWithSrc(request.Payload, 0, socket.Addr.LocalIp, socket.Addr.RemoteIp)
 	ch <- messagerequest
 }
 

@@ -1,5 +1,8 @@
 package model
 
+// empty IP
+var EMPTY_VIRTUAL_IP VirtualIp = MakeVirtualIp("")
+
 // handler protocols
 const TEST_DATA_PROTOCOL = 0
 const TRANSPORT_PROTOCOL = 0

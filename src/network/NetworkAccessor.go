@@ -79,6 +79,10 @@ func (accessor *NetworkAccessor) Send(request model.SendMessageRequest, chToLink
 		return
 	}
 
+	// override the source of the outgoing IP packet if the request has a specified source
+	if request.HasSrc() {
+		exitIp = request.Src()
+	}
 	packet = convertToIpPacket(message, protocol, exitIp, dest, toSelf)
 
 	// handle the packet locally if the packet was for a local VIP and the VIP is reachable
