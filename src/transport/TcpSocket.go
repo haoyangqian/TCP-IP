@@ -37,8 +37,8 @@ func (socket *TcpSocket) SetAddr(addr SocketAddr) {
 function : send syn to remote addr:port
 
 */
-func (socket *TcpSocket) SendSyn(laddr, raddr model.VirtualIp, lport, rport int) (int, error) {
-	tcpheader := MakeTcpHeader(lport, rport, int(rand.Uint32()), 0, 2, 0xaaaa)
+func (socket *TcpSocket) SendCtrl(Ctrl int, laddr model.VirtualIp, lport int, raddr model.VirtualIp, rport int) (int, error) {
+	tcpheader := MakeTcpHeader(lport, rport, int(rand.Uint32()), 0, Ctrl, 0xaaaa)
 	tcppacket := MakeTcpPacket([]byte{}, tcpheader)
 	data := tcppacket.ConvertToBuffer()
 	tcppacket.Tcpheader.Checksum = int(Csum(data, laddr.Vip2Int(), raddr.Vip2Int()))

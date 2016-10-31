@@ -243,8 +243,19 @@ func main() {
 			socketmanager.V_listen(socketfd)
 
 		case "connect":
-			//dstIp := tokens[1]
-			//port, _ := strconv.Atoi(tokens[2])
+			if len(tokens) != 3 || tokens[1] == "\n" {
+				fmt.Println("syntax error(usage: connect [ip] [port])")
+				break
+			}
+			dstIp := tokens[1]
+			dstPort, _ := strconv.Atoi(tokens[2])
+			socketfd := socketmanager.V_socket()
+			_, err := socketmanager.V_bind(socketfd, model.VirtualIp{}, 0)
+			if err != nil {
+				fmt.Println(err)
+				break
+			}
+			socketmanager.V_connect(socketfd, model.VirtualIp{dstIp}, dstPort)
 		case "up":
 			id, _ := strconv.Atoi(tokens[1])
 

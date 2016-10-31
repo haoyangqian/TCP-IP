@@ -7,11 +7,11 @@ import (
 )
 
 type SocketRunner struct {
-	socketManager transport.SocketManager
+	socketManager *transport.SocketManager
 	recvFromIpCh  <-chan model.IpPacket
 }
 
-func MakeSocketRunner(sm transport.SocketManager, recvfromipch <-chan model.IpPacket) SocketRunner {
+func MakeSocketRunner(sm *transport.SocketManager, recvfromipch <-chan model.IpPacket) SocketRunner {
 	return SocketRunner{sm, recvfromipch}
 }
 func (runner *SocketRunner) Run() {
@@ -28,10 +28,22 @@ func (runner *SocketRunner) Run() {
 
 			socketAddr := transport.SocketAddr{localIp, localPort, remoteIp, remotePort}
 			tcpSocket, err := runner.socketManager.GetSocketByAddr(socketAddr)
-			if err != nil {
-				fmt.Printf("Could not find the corresponding socket given %+v/n", socketAddr)
+			if err == nil {
+				tcpSocket.Recv(ipPacket)
+				fmt.Println("find established")
+				continue
 			}
-			tcpSocket.Recv(ipPacket)
+
+			listenSocket, err := runner.socketManager.GetSocketByAddr(transport.SocketAddr{localIp, localPort, model.VirtualIp{"0.0.0.0"}, 0})
+			if err == nil {
+				//tcp accept
+				fmt.Println("find listened")
+				if tcpPacket.Tcpheader.HasFlag(transport.SYN) {
+					runner.socketManager.V_accept(listenSocket.Fd, remoteIp, remotePort)
+				}
+				continue
+			}
+			fmt.Printf("Could not find the corresponding socket given %+v/n", socketAddr)
 		}
 	}
 }

@@ -22,7 +22,7 @@ type ResourceFactory struct {
 	networkRunner     runner.NetworkRunner
 	ripRunner         runner.RipRunner
 
-	socketManager transport.SocketManager
+	socketManager *transport.SocketManager
 	socketRunner  runner.SocketRunner
 }
 
@@ -57,7 +57,7 @@ func InitializeResourceFactory(routingTable model.RoutingTable, interfaces map[m
 	// transport & sockets
 	fmsBuilder := makeTcpFsmBuilder()
 	socketManager := transport.MakeSocketManager(interfaces, fmsBuilder, messageChannel)
-	socketRunner := runner.MakeSocketRunner(socketManager, ipToTcpChannel)
+	socketRunner := runner.MakeSocketRunner(&socketManager, ipToTcpChannel)
 
 	factory := ResourceFactory{}
 	factory.routingTable = routingTable
@@ -76,7 +76,7 @@ func InitializeResourceFactory(routingTable model.RoutingTable, interfaces map[m
 	factory.networkRunner = networkRunner
 	factory.ripRunner = ripRunner
 
-	factory.socketManager = socketManager
+	factory.socketManager = &socketManager
 	factory.socketRunner = socketRunner
 	return factory
 }
@@ -121,7 +121,7 @@ func (factory *ResourceFactory) RipRunner() runner.RipRunner {
 	return factory.ripRunner
 }
 
-func (factory *ResourceFactory) SocketManager() transport.SocketManager {
+func (factory *ResourceFactory) SocketManager() *transport.SocketManager {
 	return factory.socketManager
 }
 
@@ -133,6 +133,8 @@ func makeTcpFsmBuilder() transport.TcpStateMachineBuilder {
 	builder := transport.MakeTcpStateMachineBuilder(transport.TCP_INITIAL_CLOSED)
 
 	builder.RegisterTransition(transport.TCP_INITIAL_CLOSED, transport.TCP_PASSIVE_OPEN, transport.TCP_RESP_DO_NOTHING, transport.TCP_LISTEN)
+
+	builder.RegisterTransition(transport.TCP_INITIAL_CLOSED, transport.TCP_ACTIVE_OPEN, transport.TCP_RESP_SEND_SYN, transport.TCP_SYN_SENT)
 
 	builder.RegisterTransition(transport.TCP_LISTEN, transport.TCP_CLOSE, transport.TCP_RESP_DEL_SOCK, transport.TCP_INITIAL_CLOSED)
 	builder.RegisterTransition(transport.TCP_LISTEN, transport.TCP_RECV_SYN, transport.TCP_RESP_SEND_SYN_ACK, transport.TCP_SYN_RCVD)

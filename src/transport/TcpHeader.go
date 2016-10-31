@@ -88,9 +88,11 @@ func (tcp *TCPHeader) Marshal() []byte {
 	out := buf.Bytes()
 
 	// Pad to min tcp header size, which is 20 bytes (5 32-bit words)
-	pad := 20 - len(out)
-	for i := 0; i < pad; i++ {
-		out = append(out, 0)
+	if len(out) > 20 {
+		pad := 24 - len(out)
+		for i := 0; i < pad; i++ {
+			out = append(out, 0)
+		}
 	}
 
 	return out
