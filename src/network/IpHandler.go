@@ -21,6 +21,7 @@ func printPacketInfo(packet model.IpPacket) {
 	fmt.Println(packet.IpPacketString())
 	tcppacket := transport.ConvertToTcpPacket(packet.Payload)
 	fmt.Println(tcppacket.TcpPacketString())
+	fmt.Printf("ctrl info: %b\n", tcppacket.Tcpheader.Ctrl)
 	fmt.Print("> ")
 }
 

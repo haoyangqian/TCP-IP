@@ -47,6 +47,9 @@ func MakeSocketManager(interfaces map[model.VirtualIp]*model.NodeInterface, fsmB
 }
 
 func (manager *SocketManager) GetSocketByAddr(addr SocketAddr) (*TcpSocket, error) {
+	for k, _ := range manager.socketMapByAddr {
+		fmt.Printf("get socketbyaddr() : map key: %+v\n", k)
+	}
 	if s, ok := manager.socketMapByAddr[addr]; ok {
 		return s, nil
 	} else {
@@ -70,6 +73,23 @@ func (manager *SocketManager) GetAvailableInterface(port int) (model.VirtualIp, 
 		}
 	}
 	return model.VirtualIp{}, errors.New("GetAvailableInterface() error: No available interfaces")
+}
+
+func (manager *SocketManager) UpdateRomoteAddr(socket *TcpSocket, addr model.VirtualIp, port int) {
+	newsocket, err := manager.GetSocketByAddr(SocketAddr{socket.Addr.LocalIp, socket.Addr.LocalPort, model.VirtualIp{"0.0.0.0"}, 0})
+	if err != nil {
+		return
+	}
+	if newsocket.Fd == socket.Fd {
+		delete(manager.socketMapByAddr, socket.Addr)
+	}
+	socket.SetAddr(SocketAddr{socket.Addr.LocalIp, socket.Addr.LocalPort, addr, port})
+	manager.socketMapByAddr[socket.Addr] = socket
+}
+
+func (manager *SocketManager) InsertRomoteAddr(socket *TcpSocket, laddr model.VirtualIp, lport int, raddr model.VirtualIp, rport int) {
+	socket.SetAddr(SocketAddr{laddr, lport, raddr, rport})
+	manager.socketMapByAddr[socket.Addr] = socket
 }
 
 func (manager *SocketManager) V_socket() int {
@@ -143,7 +163,8 @@ func (manager *SocketManager) V_connect(socketfd int, addr model.VirtualIp, port
 	if err != nil {
 		return -1, errors.New("v_connect() error: sendctrl() went wrong")
 	}
-	socket.SetAddr(SocketAddr{socket.Addr.LocalIp, socket.Addr.LocalPort, addr, port})
+	//setaddr and change the key, update record in mapbyaddr
+	manager.UpdateRomoteAddr(socket, addr, port)
 	socket.StateMachine.Transit(TCP_ACTIVE_OPEN)
 
 	return 0, nil
@@ -152,16 +173,24 @@ func (manager *SocketManager) V_connect(socketfd int, addr model.VirtualIp, port
 func (manager *SocketManager) V_accept(listenfd int, addr model.VirtualIp, port int) (int, error) {
 	socketfd := manager.V_socket()
 	listensocket, _ := manager.GetSocketByFd(listenfd)
-	manager.V_bind(socketfd, listensocket.Addr.LocalIp, listensocket.Addr.LocalPort)
+	//manager.V_bind(socketfd, listensocket.Addr.LocalIp, listensocket.Addr.LocalPort)
 	socket, _ := manager.GetSocketByFd(socketfd)
 	//send back ACK and SYN
+	fmt.Printf("Accept state is %s\n", socket.StateMachine.CurrentState())
+
+	socket.StateMachine.Transit(TCP_PASSIVE_OPEN)
+
 	ctrl, _ := socket.StateMachine.GetResponse(TCP_RECV_SYN)
-	_, err := socket.SendCtrl(ctrl.GetCtrlFlags(), socket.Addr.LocalIp, socket.Addr.LocalPort, addr, port)
+	fmt.Printf("Accept returns Ctrl flags as %b\n", ctrl.GetCtrlFlags())
+	_, err := socket.SendCtrl(ctrl.GetCtrlFlags(), listensocket.Addr.LocalIp, listensocket.Addr.LocalPort, addr, port)
 	if err != nil {
 		return -1, errors.New("v_accept() error: sendctrl() went wrong")
 	}
-	socket.SetAddr(SocketAddr{socket.Addr.LocalIp, socket.Addr.LocalPort, addr, port})
-	socket.StateMachine.Transit(TCP_PASSIVE_OPEN)
+	//set laddr/lport/raddr/rport, insert record into mapbyaddr
+	manager.InsertRomoteAddr(socket, listensocket.Addr.LocalIp, listensocket.Addr.LocalPort, addr, port)
+	for k, _ := range manager.socketMapByAddr {
+		fmt.Printf("v_accept() : map key: %+v\n", k)
+	}
 	socket.StateMachine.Transit(TCP_RECV_SYN)
 	return socketfd, nil
 }

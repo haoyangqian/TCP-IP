@@ -28,6 +28,7 @@ func (runner *SocketRunner) Run() {
 
 			socketAddr := transport.SocketAddr{localIp, localPort, remoteIp, remotePort}
 			tcpSocket, err := runner.socketManager.GetSocketByAddr(socketAddr)
+			fmt.Printf("socketaddr : %+v\n", socketAddr)
 			if err == nil {
 				tcpSocket.Recv(ipPacket)
 				fmt.Println("find established")
@@ -38,7 +39,7 @@ func (runner *SocketRunner) Run() {
 			if err == nil {
 				//tcp accept
 				fmt.Println("find listened")
-				if tcpPacket.Tcpheader.HasFlag(transport.SYN) {
+				if tcpPacket.Tcpheader.HasFlag(transport.SYN) && !tcpPacket.Tcpheader.HasFlag(transport.ACK) {
 					runner.socketManager.V_accept(listenSocket.Fd, remoteIp, remotePort)
 				}
 				continue

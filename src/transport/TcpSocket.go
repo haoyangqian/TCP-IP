@@ -38,6 +38,7 @@ function : send syn to remote addr:port
 
 */
 func (socket *TcpSocket) SendCtrl(Ctrl int, laddr model.VirtualIp, lport int, raddr model.VirtualIp, rport int) (int, error) {
+	fmt.Printf("send ctrl() -- ctrl:%b,laddr:%s,lport,%d,raddr:%s,rport:%d\n", Ctrl, laddr.Ip, lport, raddr.Ip, rport)
 	tcpheader := MakeTcpHeader(lport, rport, int(rand.Uint32()), 0, Ctrl, 0xaaaa)
 	tcppacket := MakeTcpPacket([]byte{}, tcpheader)
 	data := tcppacket.ConvertToBuffer()
@@ -65,6 +66,32 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 	// recv
 	tcppacket := ConvertToTcpPacket(packet.Payload)
 	fmt.Println(tcppacket.TcpPacketString())
+
+	event := MakeTcpTransitionEvent(tcppacket.Tcpheader)
+	// state will change, execute statemachine response
+	if socket.StateMachine.HasTransition(event) {
+		fmt.Printf("transition : %+v\n", event)
+		resp, _ := socket.StateMachine.GetResponse(event)
+		fmt.Printf("resp: %+v\n", resp)
+		if !resp.ShouldDoNothing() {
+			if resp.ShouldDeleteSocket {
+				// socket clean up
+				fmt.Printf("Socket should be deleted\n")
+			} else {
+				ctrl := resp.GetCtrlFlags()
+				fmt.Printf("recv(): ctrl : %b\n", ctrl)
+				socket.SendCtrl(ctrl, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
+			}
+
+		}
+
+		socket.StateMachine.Transit(event)
+	}
+
+	// state does not change
+	// if socket.StateMachine.CurrentState() == TCP_ESTABLISHED || socket.StateMachine.CurrentState().IsActiveClose() {
+	// sliding window blah blah blah
+	// }
 }
 
 func (socket *TcpSocket) ReadFromBuffer(bytes int, block bool) []byte {
