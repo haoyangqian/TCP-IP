@@ -23,7 +23,6 @@ type ResourceFactory struct {
 	ripRunner         runner.RipRunner
 
 	socketManager *transport.SocketManager
-	socketRunner  runner.SocketRunner
 }
 
 func InitializeResourceFactory(routingTable model.RoutingTable, interfaces map[model.VirtualIp]*model.NodeInterface, service string) ResourceFactory {
@@ -57,7 +56,6 @@ func InitializeResourceFactory(routingTable model.RoutingTable, interfaces map[m
 	// transport & sockets
 	fmsBuilder := makeTcpFsmBuilder()
 	socketManager := transport.MakeSocketManager(interfaces, fmsBuilder, messageChannel)
-	socketRunner := runner.MakeSocketRunner(&socketManager, ipToTcpChannel)
 
 	factory := ResourceFactory{}
 	factory.routingTable = routingTable
@@ -77,7 +75,6 @@ func InitializeResourceFactory(routingTable model.RoutingTable, interfaces map[m
 	factory.ripRunner = ripRunner
 
 	factory.socketManager = &socketManager
-	factory.socketRunner = socketRunner
 	return factory
 }
 
@@ -123,10 +120,6 @@ func (factory *ResourceFactory) RipRunner() runner.RipRunner {
 
 func (factory *ResourceFactory) SocketManager() *transport.SocketManager {
 	return factory.socketManager
-}
-
-func (factory *ResourceFactory) SocketRunner() runner.SocketRunner {
-	return factory.socketRunner
 }
 
 func makeTcpFsmBuilder() transport.TcpStateMachineBuilder {
