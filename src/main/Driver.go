@@ -264,7 +264,7 @@ func main() {
 			dstIp := tokens[1]
 			dstPort, _ := strconv.Atoi(tokens[2])
 			socketfd := socketmanager.V_socket()
-			_, err := socketmanager.V_bind(socketfd, model.VirtualIp{}, 0)
+			_, err := socketmanager.V_bind(socketfd, model.VirtualIp{}, -1)
 			if err != nil {
 				fmt.Println(err)
 				break

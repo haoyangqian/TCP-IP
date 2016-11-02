@@ -38,6 +38,9 @@ func (accessor *NetworkAccessor) ReceiveAndHandle(result model.LinkReceiveResult
 	}
 
 	protocol := packet.Ipheader.Protocol
+	//	if protocol != 200 {
+	//		fmt.Println("Network accessor:\n", packet.IpPacketString())
+	//	}
 	if handler, ok := accessor.handlers[protocol]; ok {
 		go handler.Handle(packet, receivedFrom)
 	} else {

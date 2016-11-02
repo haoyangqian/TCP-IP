@@ -46,7 +46,7 @@ func InitializeResourceFactory(routingTable model.RoutingTable, interfaces map[m
 	// network
 	networkAccessor := network.NewNetworkAccessor(routingTable)
 	networkAccessor.RegisterHandler(model.RIP_PROTOCOL, ripHandler)
-	networkAccessor.RegisterHandler(model.TEST_DATA_PROTOCOL, ipHandler)
+	networkAccessor.RegisterHandler(model.TRANSPORT_PROTOCOL, ipHandler)
 
 	// link
 	linkAccessor := network.NewLinkAccessor(nodeInterfaceTable, service)

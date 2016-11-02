@@ -3,6 +3,7 @@ package transport
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"model"
 	"os"
 	"text/tabwriter"
@@ -151,9 +152,10 @@ func (manager *SocketManager) V_bind(socketfd int, addr model.VirtualIp, port in
 		if port == -1 {
 			port = manager.portcount
 			for {
+				fmt.Printf("trying to find a new port: %d\n", port)
 				vip, err := manager.GetAvailableInterface(port)
 				//find available port
-				if err != nil {
+				if err == nil {
 					manager.portcount += 1
 					addr = vip
 					break
@@ -162,7 +164,6 @@ func (manager *SocketManager) V_bind(socketfd int, addr model.VirtualIp, port in
 					manager.portcount += 1
 				}
 			}
-			return -1, errors.New("v_bind() error:No available port")
 		} else {
 			vip, err := manager.GetAvailableInterface(port)
 			addr = vip
@@ -185,7 +186,12 @@ func (manager *SocketManager) V_listen(socketfd int) int {
 	// transit socket state
 	// starts runner
 	runner, _ := manager.GetRunnerByFd(socketfd)
-	runner.Socket.StateMachine.Transit(TCP_PASSIVE_OPEN)
+	socket := runner.Socket
+	//if not bind, bind a random ip and port to this scoekts
+	if socket.Addr.LocalIp.Ip == "" && socket.Addr.LocalPort == 0 {
+		manager.V_bind(socket.Fd, model.VirtualIp{}, -1)
+	}
+	socket.StateMachine.Transit(TCP_PASSIVE_OPEN)
 	go runner.Run()
 	return 0
 }
@@ -195,7 +201,7 @@ func (manager *SocketManager) V_connect(socketfd int, addr model.VirtualIp, port
 	socket := runner.Socket
 	ctrl, _ := socket.StateMachine.GetResponse(TCP_ACTIVE_OPEN)
 	//send syn
-	_, err := socket.SendCtrl(ctrl.GetCtrlFlags(), socket.Addr.LocalIp, socket.Addr.LocalPort, addr, port)
+	_, err := socket.SendCtrl(ctrl.GetCtrlFlags(), int(rand.Int31()), 0, socket.Addr.LocalIp, socket.Addr.LocalPort, addr, port)
 	if err != nil {
 		return -1, errors.New("v_connect() error: sendctrl() went wrong")
 	}
@@ -209,7 +215,7 @@ func (manager *SocketManager) V_connect(socketfd int, addr model.VirtualIp, port
 func (manager *SocketManager) V_accept(listenfd int, addr *model.VirtualIp, port *int) (int, error) {
 	//get ip header from channel
 	runner, _ := manager.GetRunnerByFd(listenfd)
-	fmt.Println("reading channel... ")
+	//fmt.Println("reading channel... ")
 	ipPacket := <-runner.RecvFromIpCh
 
 	localIp := model.Int2Vip(ipPacket.Ipheader.Dst)
@@ -219,19 +225,17 @@ func (manager *SocketManager) V_accept(listenfd int, addr *model.VirtualIp, port
 	localPort := tcpPacket.Tcpheader.Destination
 	remotePort := tcpPacket.Tcpheader.Source
 
-	fmt.Println("receive ippacket in v_accept(), localIp: %s, localport : %d, remoteIp: %s , remoteport: %d", localIp, localPort, remoteIp, remotePort)
+	//fmt.Println("receive ippacket in v_accept(), localIp: %s, localport : %d, remoteIp: %s , remoteport: %d", localIp, localPort, remoteIp, remotePort)
 	//create a new socket
 	socketfd := manager.V_socket()
-	//get listen socket by fd
-	//listenSocket, _ := manager.GetSocketByFd(listenfd)
-	socket, _ := manager.GetSocketByFd(socketfd)
 
+	socket, _ := manager.GetSocketByFd(socketfd)
 	//send back ACK and SYN
 	//fmt.Printf("Accept state is %s\n", socket.StateMachine.CurrentState())
 	socket.StateMachine.Transit(TCP_PASSIVE_OPEN)
 	ctrl, _ := socket.StateMachine.GetResponse(TCP_RECV_SYN)
 	//fmt.Printf("Accept returns Ctrl flags as %b\n", ctrl.GetCtrlFlags())
-	_, err := socket.SendCtrl(ctrl.GetCtrlFlags(), localIp, localPort, remoteIp, remotePort)
+	_, err := socket.SendCtrl(ctrl.GetCtrlFlags(), int(rand.Int31()), tcpPacket.Tcpheader.SeqNum+1, localIp, localPort, remoteIp, remotePort)
 	if err != nil {
 		return -1, errors.New("v_accept() error: sendctrl() went wrong")
 	}
