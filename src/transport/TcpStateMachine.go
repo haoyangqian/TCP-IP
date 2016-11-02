@@ -83,7 +83,7 @@ type TcpTransitionResponse struct {
 }
 
 func (r *TcpTransitionResponse) ShouldDoNothing() bool {
-	return r.ShouldSendSyn || r.ShouldSendAck || r.ShouldSendFin || r.ShouldDeleteSocket
+	return !(r.ShouldSendSyn || r.ShouldSendAck || r.ShouldSendFin || r.ShouldDeleteSocket)
 }
 
 func (r *TcpTransitionResponse) GetCtrlFlags() int {

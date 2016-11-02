@@ -160,6 +160,26 @@ func PrintRoutingtableall(table model.RoutingTable) {
 	w.Flush()
 }
 
+func TcpSocketAccept(socketManager *transport.SocketManager, port int) {
+	listenfd := socketManager.V_socket()
+	_, err := socketManager.V_bind(listenfd, model.VirtualIp{}, port)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	socketManager.V_listen(listenfd)
+	for {
+		var addr model.VirtualIp
+		var port int
+		//wait for connection...blocking
+		newFd, _ := socketManager.V_accept(listenfd, &addr, &port)
+		listenSocket, _ := socketManager.GetSocketByFd(listenfd)
+		newrunner, _ := socketManager.GetRunnerByFd(newFd)
+		socketManager.SetSocketAddr(newFd, transport.SocketAddr{listenSocket.Addr.LocalIp, listenSocket.Addr.LocalPort, addr, port})
+		go newrunner.Run()
+	}
+}
+
 func PrintHelp() {
 	fmt.Println("Commands:")
 	fmt.Println("accept [port]                        - Spawn a socket, bind it to the given port,")
@@ -209,15 +229,13 @@ func main() {
 	ripRunner := factory.RipRunner()
 
 	socketmanager := factory.SocketManager()
-	socketRunner := factory.SocketRunner()
 
 	var wg sync.WaitGroup
-	wg.Add(5)
+	wg.Add(4)
 	go networkRunner.Run()
 	go linkSendRunner.Run()
 	go linkReceiveRunner.Run()
 	go ripRunner.Run()
-	go socketRunner.Run()
 	//go
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Print("> ")
@@ -236,13 +254,7 @@ func main() {
 			//if port is larger than 65535
 			port, _ := strconv.Atoi(tokens[1])
 			port = port % 65535
-			socketfd := socketmanager.V_socket()
-			_, err := socketmanager.V_bind(socketfd, model.VirtualIp{}, port)
-			if err != nil {
-				fmt.Println(err)
-				break
-			}
-			socketmanager.V_listen(socketfd)
+			go TcpSocketAccept(socketmanager, port)
 
 		case "connect":
 			if len(tokens) != 3 || tokens[1] == "\n" {

@@ -9,8 +9,8 @@ import (
 )
 
 type SocketManager struct {
-	socketMapByFd   map[int]*TcpSocket
-	socketMapByAddr map[SocketAddr]*TcpSocket
+	socketMapByFd   map[int]*SocketRunner
+	socketMapByAddr map[SocketAddr]*SocketRunner
 	interfacetable  map[model.VirtualIp]bool
 	fsmBuilder      TcpStateMachineBuilder
 	fdcount         int
@@ -31,14 +31,14 @@ func (manager *SocketManager) PrintSockets() {
 	fmt.Fprintf(w, "socket\tlocal-addr\tport\tdst-addr\t\tport\tstatus\n")
 	fmt.Fprintf(w, "--------------------------------------------------\n")
 	for k, v := range manager.socketMapByFd {
-		fmt.Fprintf(w, "%d\t%s\t%d\t%s\t\t%d\t%s\n", k, v.Addr.LocalIp.Ip, v.Addr.LocalPort, v.Addr.RemoteIp.Ip, v.Addr.RemotePort, v.StateMachine.CurrentState().Name)
+		fmt.Fprintf(w, "%d\t%s\t%d\t%s\t\t%d\t%s\n", k, v.Socket.Addr.LocalIp.Ip, v.Socket.Addr.LocalPort, v.Socket.Addr.RemoteIp.Ip, v.Socket.Addr.RemotePort, v.Socket.StateMachine.CurrentState().Name)
 	}
 	w.Flush()
 }
 
 func MakeSocketManager(interfaces map[model.VirtualIp]*model.NodeInterface, fsmBuilder TcpStateMachineBuilder, sendToIpCh chan<- model.SendMessageRequest) SocketManager {
-	socketmapfd := make(map[int]*TcpSocket)
-	socketmapaddr := make(map[SocketAddr]*TcpSocket)
+	socketmapfd := make(map[int]*SocketRunner)
+	socketmapaddr := make(map[SocketAddr]*SocketRunner)
 	interfacetable := make(map[model.VirtualIp]bool)
 	for _, v := range interfaces {
 		interfacetable[v.Src] = true
@@ -46,19 +46,40 @@ func MakeSocketManager(interfaces map[model.VirtualIp]*model.NodeInterface, fsmB
 	return SocketManager{socketmapfd, socketmapaddr, interfacetable, fsmBuilder, -1, 1024, sendToIpCh}
 }
 
-func (manager *SocketManager) GetSocketByAddr(addr SocketAddr) (*TcpSocket, error) {
-	if s, ok := manager.socketMapByAddr[addr]; ok {
-		return s, nil
+func (manager *SocketManager) GetRunnerByAddr(addr SocketAddr) (*SocketRunner, error) {
+	for k, _ := range manager.socketMapByAddr {
+		fmt.Printf("get socketbyaddr() : map key: %+v\n", k)
+	}
+	if r, ok := manager.socketMapByAddr[addr]; ok {
+		return r, nil
 	} else {
-		return s, errors.New("No sockets found!")
+		return r, errors.New("No runner found!")
+	}
+}
+
+func (manager *SocketManager) GetSocketByAddr(addr SocketAddr) (*TcpSocket, error) {
+	runner, err := manager.GetRunnerByAddr(addr)
+	if err != nil {
+		return nil, errors.New("No sockets found!")
+	} else {
+		return runner.Socket, nil
+	}
+}
+
+func (manager *SocketManager) GetRunnerByFd(fd int) (*SocketRunner, error) {
+	if r, ok := manager.socketMapByFd[fd]; ok {
+		return r, nil
+	} else {
+		return r, errors.New("No sockets found!")
 	}
 }
 
 func (manager *SocketManager) GetSocketByFd(fd int) (*TcpSocket, error) {
-	if s, ok := manager.socketMapByFd[fd]; ok {
-		return s, nil
+	runner, err := manager.GetRunnerByFd(fd)
+	if err != nil {
+		return nil, errors.New("No sockets found!")
 	} else {
-		return s, errors.New("No sockets found!")
+		return runner.Socket, nil
 	}
 }
 
@@ -72,24 +93,55 @@ func (manager *SocketManager) GetAvailableInterface(port int) (model.VirtualIp, 
 	return model.VirtualIp{}, errors.New("GetAvailableInterface() error: No available interfaces")
 }
 
+func (manager *SocketManager) UpdateRomoteAddr(socket *TcpSocket, addr model.VirtualIp, port int) {
+	//	newsocket, err := manager.GetSocketByAddr(SocketAddr{socket.Addr.LocalIp, socket.Addr.LocalPort, model.VirtualIp{"0.0.0.0"}, 0})
+	//	if err != nil {
+	//		return
+	//	}
+	//	if newsocket.Fd == socket.Fd {
+	//		delete(manager.socketMapByAddr, socket.Addr)
+	//	}
+	//	socket.SetAddr(SocketAddr{socket.Addr.LocalIp, socket.Addr.LocalPort, addr, port})
+	//	manager.socketMapByAddr[socket.Addr] = socket
+}
+
+func (manager *SocketManager) InsertRomoteAddr(socket *TcpSocket, laddr model.VirtualIp, lport int, raddr model.VirtualIp, rport int) {
+	//	socket.SetAddr(SocketAddr{laddr, lport, raddr, rport})
+	//	manager.socketMapByAddr[socket.Addr] = socket
+}
+
+func (manager *SocketManager) SetSocketAddr(socketfd int, addr SocketAddr) {
+	runner, err := manager.GetRunnerByFd(socketfd)
+	if err != nil {
+		fmt.Println("Set socket addr fail")
+		return
+	}
+	runner.Socket.Addr = addr
+	newsocket, err := manager.GetSocketByAddr(runner.Socket.Addr)
+	//find the same sockefd in map
+	if err == nil && socketfd == newsocket.Fd {
+		delete(manager.socketMapByAddr, runner.Socket.Addr)
+	}
+	manager.socketMapByAddr[addr] = runner
+}
+
 func (manager *SocketManager) V_socket() int {
 	//create a new socket
-	//fmt.Println("****")
 	manager.PrintSockets()
 	manager.fdcount += 1
-	//fmt.Println("fdcount:", manager.fdcount)
 	stateMachine := manager.fsmBuilder.Build()
 	socket := MakeSocket(manager.fdcount, stateMachine, manager.sendToIpCh)
-
-	manager.socketMapByFd[manager.fdcount] = &socket
-	//manager.PrintSockets()
+	//create a new runner
+	runner := MakeSocketRunner(&socket, manager, make(chan model.IpPacket))
+	manager.socketMapByFd[manager.fdcount] = &runner
+	manager.PrintSockets()
 	return manager.fdcount
 }
 
 func (manager *SocketManager) V_bind(socketfd int, addr model.VirtualIp, port int) (int, error) {
 	//get the socket from map
-	socket, ok := manager.socketMapByFd[socketfd]
-	if !ok {
+	_, err := manager.GetSocketByFd(socketfd)
+	if err != nil {
 		return -1, errors.New("v_bind() error:Wrong socketfd")
 	}
 
@@ -124,44 +176,67 @@ func (manager *SocketManager) V_bind(socketfd int, addr model.VirtualIp, port in
 	//set socket addr
 	//check if this addr is available
 	socketaddr := SocketAddr{addr, port, model.VirtualIp{"0.0.0.0"}, 0}
-	socket.SetAddr(socketaddr)
-	//fmt.Println("bind addr:", socketaddr)
-	manager.socketMapByAddr[socketaddr] = socket
+	manager.SetSocketAddr(socketfd, socketaddr)
 	return 0, nil
 }
 
 func (manager *SocketManager) V_listen(socketfd int) int {
-	socket, _ := manager.GetSocketByFd(socketfd)
-	socket.StateMachine.Transit(TCP_PASSIVE_OPEN)
+	// get socket runner
+	// transit socket state
+	// starts runner
+	runner, _ := manager.GetRunnerByFd(socketfd)
+	runner.Socket.StateMachine.Transit(TCP_PASSIVE_OPEN)
+	go runner.Run()
 	return 0
 }
 
 func (manager *SocketManager) V_connect(socketfd int, addr model.VirtualIp, port int) (int, error) {
-	socket, _ := manager.GetSocketByFd(socketfd)
+	runner, _ := manager.GetRunnerByFd(socketfd)
+	socket := runner.Socket
 	ctrl, _ := socket.StateMachine.GetResponse(TCP_ACTIVE_OPEN)
+	//send syn
 	_, err := socket.SendCtrl(ctrl.GetCtrlFlags(), socket.Addr.LocalIp, socket.Addr.LocalPort, addr, port)
 	if err != nil {
 		return -1, errors.New("v_connect() error: sendctrl() went wrong")
 	}
-	socket.SetAddr(SocketAddr{socket.Addr.LocalIp, socket.Addr.LocalPort, addr, port})
+	//setaddr ,  update record in mapbyaddr
+	manager.SetSocketAddr(socketfd, SocketAddr{socket.Addr.LocalIp, socket.Addr.LocalPort, addr, port})
 	socket.StateMachine.Transit(TCP_ACTIVE_OPEN)
-
+	go runner.Run()
 	return 0, nil
 }
 
-func (manager *SocketManager) V_accept(listenfd int, addr model.VirtualIp, port int) (int, error) {
+func (manager *SocketManager) V_accept(listenfd int, addr *model.VirtualIp, port *int) (int, error) {
+	//get ip header from channel
+	runner, _ := manager.GetRunnerByFd(listenfd)
+	fmt.Println("reading channel... ")
+	ipPacket := <-runner.RecvFromIpCh
+
+	localIp := model.Int2Vip(ipPacket.Ipheader.Dst)
+	remoteIp := model.Int2Vip(ipPacket.Ipheader.Src)
+
+	tcpPacket := ConvertToTcpPacket(ipPacket.Payload)
+	localPort := tcpPacket.Tcpheader.Destination
+	remotePort := tcpPacket.Tcpheader.Source
+
+	fmt.Println("receive ippacket in v_accept(), localIp: %s, localport : %d, remoteIp: %s , remoteport: %d", localIp, localPort, remoteIp, remotePort)
+	//create a new socket
 	socketfd := manager.V_socket()
-	listensocket, _ := manager.GetSocketByFd(listenfd)
-	manager.V_bind(socketfd, listensocket.Addr.LocalIp, listensocket.Addr.LocalPort)
+	//get listen socket by fd
+	//listenSocket, _ := manager.GetSocketByFd(listenfd)
 	socket, _ := manager.GetSocketByFd(socketfd)
+
 	//send back ACK and SYN
+	//fmt.Printf("Accept state is %s\n", socket.StateMachine.CurrentState())
+	socket.StateMachine.Transit(TCP_PASSIVE_OPEN)
 	ctrl, _ := socket.StateMachine.GetResponse(TCP_RECV_SYN)
-	_, err := socket.SendCtrl(ctrl.GetCtrlFlags(), socket.Addr.LocalIp, socket.Addr.LocalPort, addr, port)
+	//fmt.Printf("Accept returns Ctrl flags as %b\n", ctrl.GetCtrlFlags())
+	_, err := socket.SendCtrl(ctrl.GetCtrlFlags(), localIp, localPort, remoteIp, remotePort)
 	if err != nil {
 		return -1, errors.New("v_accept() error: sendctrl() went wrong")
 	}
-	socket.SetAddr(SocketAddr{socket.Addr.LocalIp, socket.Addr.LocalPort, addr, port})
-	socket.StateMachine.Transit(TCP_PASSIVE_OPEN)
+	*addr = remoteIp
+	*port = remotePort
 	socket.StateMachine.Transit(TCP_RECV_SYN)
 	return socketfd, nil
 }
