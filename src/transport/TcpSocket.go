@@ -37,11 +37,12 @@ func (socket *TcpSocket) SendCtrl(Ctrl int, seqnum int, acknum int, laddr model.
 	tcpheader := MakeTcpHeader(lport, rport, seqnum, acknum, Ctrl, 0xaaaa)
 	socket.SeqNum = seqnum
 	tcppacket := MakeTcpPacket([]byte{}, tcpheader)
+	//set tcp checksum
 	data := tcppacket.ConvertToBuffer()
 	tcppacket.Tcpheader.Checksum = int(Csum(data, laddr.Vip2Int(), raddr.Vip2Int()))
-	data = tcppacket.ConvertToBuffer()
-
-	request := model.MakeSendMessageRequestWithSrc(data, model.TRANSPORT_PROTOCOL, laddr, raddr)
+	ipPayload := tcppacket.ConvertToBuffer()
+	//put tcppacket to channel
+	request := model.MakeSendMessageRequestWithSrc(ipPayload, model.TRANSPORT_PROTOCOL, laddr, raddr)
 	socket.SendToIpCh <- request
 	return 1, nil
 }

@@ -21,6 +21,7 @@ func (runner *SocketRunner) Run() {
 		fmt.Printf("waiting for channel! channel addr:%x\n", runner.RecvFromIpCh)
 		select {
 		case ipPacket := <-runner.RecvFromIpCh:
+			//fmt.Println("***** Runner #%d received data from channel", runner.Socket.Fd)
 			runner.Socket.Recv(ipPacket)
 			//			if err == nil {
 			//				tcpSocket.Recv(ipPacket)

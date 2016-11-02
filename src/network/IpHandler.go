@@ -31,21 +31,31 @@ func (handler IpHandler) handlePacket(ipPacket model.IpPacket) {
 	remoteIp := model.Int2Vip(ipPacket.Ipheader.Src)
 
 	tcpPacket := transport.ConvertToTcpPacket(ipPacket.Payload)
+	//check tcp checksum
+	recvcheck := tcpPacket.Tcpheader.Checksum
+	tcpbytes := ipPacket.Payload
+	tcpbytes[16] = 0
+	tcpbytes[17] = 0
+	calchecksum := int(transport.Csum(tcpbytes, remoteIp.Vip2Int(), localIp.Vip2Int()))
+	if recvcheck != calchecksum {
+		fmt.Printf("Tcp Checksum Mismatch!recvcheck:%d, calcheck:\n", recvcheck, calchecksum)
+		return
+	}
 	localPort := tcpPacket.Tcpheader.Destination
 	remotePort := tcpPacket.Tcpheader.Source
 
 	socketAddr := transport.SocketAddr{localIp, localPort, remoteIp, remotePort}
 	tcprunner, err := handler.SocketManager.GetRunnerByAddr(socketAddr)
-	fmt.Printf("receive ippacket in Ip layer, localIp: %s, localport : %d, remoteIp: %s , remoteport: %d\n", localIp, localPort, remoteIp, remotePort)
+	//fmt.Printf("receive ippacket in Ip layer, localIp: %s, localport : %d, remoteIp: %s , remoteport: %d\n", localIp, localPort, remoteIp, remotePort)
 	if err == nil {
-		fmt.Println("find established socket\n")
+		//fmt.Println("find established socket\n")
 		tcprunner.RecvFromIpCh <- ipPacket
 		return
 	}
 
 	tcprunner, err = handler.SocketManager.GetRunnerByAddr(transport.SocketAddr{localIp, localPort, model.VirtualIp{"0.0.0.0"}, 0})
 	if err == nil {
-		fmt.Println("find listening socket\n")
+		//fmt.Println("find listening socket\n")
 		tcprunner.RecvFromIpCh <- ipPacket
 		return
 	}

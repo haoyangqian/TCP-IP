@@ -192,7 +192,8 @@ func (manager *SocketManager) V_listen(socketfd int) int {
 		manager.V_bind(socket.Fd, model.VirtualIp{}, -1)
 	}
 	socket.StateMachine.Transit(TCP_PASSIVE_OPEN)
-	go runner.Run()
+	//listen socket don't need start running
+	//	go runner.Run()
 	return 0
 }
 
