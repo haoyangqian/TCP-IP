@@ -48,9 +48,9 @@ func MakeSocketManager(interfaces map[model.VirtualIp]*model.NodeInterface, fsmB
 }
 
 func (manager *SocketManager) GetRunnerByAddr(addr SocketAddr) (*SocketRunner, error) {
-	for k, _ := range manager.socketMapByAddr {
-		fmt.Printf("get socketbyaddr() : map key: %+v\n", k)
-	}
+	//	for k, _ := range manager.socketMapByAddr {
+	//		fmt.Printf("get socketbyaddr() : map key: %+v\n", k)
+	//	}
 	if r, ok := manager.socketMapByAddr[addr]; ok {
 		return r, nil
 	} else {
@@ -128,14 +128,14 @@ func (manager *SocketManager) SetSocketAddr(socketfd int, addr SocketAddr) {
 
 func (manager *SocketManager) V_socket() int {
 	//create a new socket
-	manager.PrintSockets()
+	//manager.PrintSockets()
 	manager.fdcount += 1
 	stateMachine := manager.fsmBuilder.Build()
 	socket := MakeSocket(manager.fdcount, stateMachine, manager.sendToIpCh)
 	//create a new runner
 	runner := MakeSocketRunner(&socket, manager, make(chan model.IpPacket))
 	manager.socketMapByFd[manager.fdcount] = &runner
-	manager.PrintSockets()
+	//manager.PrintSockets()
 	return manager.fdcount
 }
 
@@ -152,7 +152,7 @@ func (manager *SocketManager) V_bind(socketfd int, addr model.VirtualIp, port in
 		if port == -1 {
 			port = manager.portcount
 			for {
-				fmt.Printf("trying to find a new port: %d\n", port)
+				//fmt.Printf("trying to find a new port: %d\n", port)
 				vip, err := manager.GetAvailableInterface(port)
 				//find available port
 				if err == nil {
@@ -210,6 +210,7 @@ func (manager *SocketManager) V_connect(socketfd int, addr model.VirtualIp, port
 	manager.SetSocketAddr(socketfd, SocketAddr{socket.Addr.LocalIp, socket.Addr.LocalPort, addr, port})
 	socket.StateMachine.Transit(TCP_ACTIVE_OPEN)
 	go runner.Run()
+	fmt.Println("v_connect() return 0")
 	return 0, nil
 }
 
@@ -243,6 +244,7 @@ func (manager *SocketManager) V_accept(listenfd int, addr *model.VirtualIp, port
 	*addr = remoteIp
 	*port = remotePort
 	socket.StateMachine.Transit(TCP_RECV_SYN)
+	fmt.Printf("v_accept() on socket %d returned %d\n", listenfd, socketfd)
 	return socketfd, nil
 }
 

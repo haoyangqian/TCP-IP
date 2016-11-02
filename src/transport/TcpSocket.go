@@ -1,7 +1,7 @@
 package transport
 
 import (
-	"fmt"
+	//"fmt"
 	"model"
 )
 
@@ -61,12 +61,12 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 	// unmarshall into TCP packet
 	// recv
 	tcppacket := ConvertToTcpPacket(packet.Payload)
-	fmt.Println(tcppacket.TcpPacketString())
+	//fmt.Println(tcppacket.TcpPacketString())
 
 	if socket.StateMachine.CurrentState() != TCP_ESTAB {
 		if tcppacket.Tcpheader.HasFlag(ACK) {
 			if tcppacket.Tcpheader.AckNum != socket.SeqNum+1 {
-				fmt.Printf("Mismatch AckNum, acknum:%d, seqnum:%d\n", tcppacket.Tcpheader.AckNum, socket.SeqNum)
+				//fmt.Printf("Mismatch AckNum, acknum:%d, seqnum:%d\n", tcppacket.Tcpheader.AckNum, socket.SeqNum)
 				return
 			}
 		}
@@ -78,14 +78,14 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 	if socket.StateMachine.HasTransition(event) {
 		//fmt.Printf("transition : %+v\n", event)
 		resp, _ := socket.StateMachine.GetResponse(event)
-		fmt.Printf("resp: %+v\n", resp)
+		//fmt.Printf("resp: %+v\n", resp)
 		if !resp.ShouldDoNothing() {
 			if resp.ShouldDeleteSocket {
 				// socket clean up
-				fmt.Printf("Socket should be deleted\n")
+				//fmt.Printf("Socket should be deleted\n")
 			} else {
 				ctrl := resp.GetCtrlFlags()
-				fmt.Printf("should send: ctrl : %b\n", ctrl)
+				//fmt.Printf("should send: ctrl : %b\n", ctrl)
 				socket.SendCtrl(ctrl, 0, tcppacket.Tcpheader.SeqNum+1, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
 			}
 

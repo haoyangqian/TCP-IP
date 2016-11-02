@@ -16,9 +16,9 @@ func MakeSocketRunner(socket *TcpSocket, sm *SocketManager, recvFromIpCh chan mo
 }
 
 func (runner *SocketRunner) Run() {
-	fmt.Printf("I am running! socketfd:%d\n", runner.Socket.Fd)
+	//fmt.Printf("I am running! socketfd:%d\n", runner.Socket.Fd)
 	for {
-		fmt.Printf("waiting for channel! channel addr:%x\n", runner.RecvFromIpCh)
+		//fmt.Printf("waiting for channel! channel addr:%x\n", runner.RecvFromIpCh)
 		select {
 		case ipPacket := <-runner.RecvFromIpCh:
 			//fmt.Println("***** Runner #%d received data from channel", runner.Socket.Fd)

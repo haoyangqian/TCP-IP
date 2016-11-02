@@ -173,7 +173,7 @@ func TcpSocketAccept(socketManager *transport.SocketManager, port int) {
 		var port int
 		//wait for connection...blocking
 		newFd, _ := socketManager.V_accept(listenfd, &addr, &port)
-		fmt.Println("Accept returned from V_accept")
+		//fmt.Println("Accept returned from V_accept")
 		listenSocket, _ := socketManager.GetSocketByFd(listenfd)
 		newrunner, _ := socketManager.GetRunnerByFd(newFd)
 		socketManager.SetSocketAddr(newFd, transport.SocketAddr{listenSocket.Addr.LocalIp, listenSocket.Addr.LocalPort, addr, port})
