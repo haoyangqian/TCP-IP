@@ -163,8 +163,8 @@ func dropPacket(packet model.IpPacket, reason string) {
 }
 
 func convertToIpPacket(message []byte, protocol int, src model.VirtualIp, dest model.VirtualIp, isToSelf bool) model.IpPacket {
-	if isToSelf {
-		src = model.VirtualIp{"0.0.0.0"}
-	}
+	//	if isToSelf {
+	//		src = model.VirtualIp{"0.0.0.0"}
+	//	}
 	return model.MakeIpPacket(message, protocol, src, dest)
 }
