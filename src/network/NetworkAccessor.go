@@ -86,6 +86,7 @@ func (accessor *NetworkAccessor) Send(request model.SendMessageRequest, chToLink
 	if request.HasSrc() {
 		exitIp = request.Src()
 	}
+
 	packet = convertToIpPacket(message, protocol, exitIp, dest, toSelf)
 
 	// handle the packet locally if the packet was for a local VIP and the VIP is reachable

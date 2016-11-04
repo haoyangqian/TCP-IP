@@ -2,12 +2,17 @@ package transport
 
 import (
 	"errors"
+	"time"
 )
 
 /*
  * Constants
  */
 var (
+	TCP_STATE_DEFAULT_TIMEOUT_MILLIS = 250
+	TCP_MSL_MILLIS                   = 60 * 1000
+	TCP_MAX_RETRY_COUNT              = 3
+
 	// EVENTS
 	TCP_ACTIVE_OPEN  TcpTransitionEvent = TcpTransitionEvent{ActiveOpen: true}
 	TCP_PASSIVE_OPEN TcpTransitionEvent = TcpTransitionEvent{PassiveOpen: true}
@@ -29,22 +34,22 @@ var (
 
 	// STATES
 	// establish connection
-	TCP_INITIAL_CLOSED TcpState = TcpState{Name: "CLOSED"}
-	TCP_LISTEN         TcpState = TcpState{Name: "LISTEN"}
-	TCP_SYN_RCVD       TcpState = TcpState{Name: "SYN_RCVD"}
-	TCP_SYN_SENT       TcpState = TcpState{Name: "SYN_SENT"}
-	TCP_ESTAB          TcpState = TcpState{Name: "ESTAB"}
+	TCP_INITIAL_CLOSED TcpState = TcpState{Name: "CLOSED", StateTimeoutMillis: 0}
+	TCP_LISTEN         TcpState = TcpState{Name: "LISTEN", StateTimeoutMillis: 0}
+	TCP_SYN_RCVD       TcpState = TcpState{Name: "SYN_RCVD", StateTimeoutMillis: TCP_STATE_DEFAULT_TIMEOUT_MILLIS}
+	TCP_SYN_SENT       TcpState = TcpState{Name: "SYN_SENT", StateTimeoutMillis: TCP_STATE_DEFAULT_TIMEOUT_MILLIS}
+	TCP_ESTAB          TcpState = TcpState{Name: "ESTAB", StateTimeoutMillis: 0}
 
 	// active close
-	TCP_FIN_WAIT_1 TcpState = TcpState{Name: "FIN_WAIT_1", IsActiveClose: true}
-	TCP_FIN_WAIT_2 TcpState = TcpState{Name: "FIN_WAIT_2", IsActiveClose: true}
-	TCP_CLOSING    TcpState = TcpState{Name: "CLOSING", IsActiveClose: true}
-	TCP_TIME_WAIT  TcpState = TcpState{Name: "TIME_WAIT", IsActiveClose: true}
+	TCP_FIN_WAIT_1 TcpState = TcpState{Name: "FIN_WAIT_1", IsActiveClose: true, StateTimeoutMillis: TCP_STATE_DEFAULT_TIMEOUT_MILLIS}
+	TCP_FIN_WAIT_2 TcpState = TcpState{Name: "FIN_WAIT_2", IsActiveClose: true, StateTimeoutMillis: TCP_STATE_DEFAULT_TIMEOUT_MILLIS}
+	TCP_CLOSING    TcpState = TcpState{Name: "CLOSING", IsActiveClose: true, StateTimeoutMillis: TCP_STATE_DEFAULT_TIMEOUT_MILLIS}
+	TCP_TIME_WAIT  TcpState = TcpState{Name: "TIME_WAIT", IsActiveClose: true, StateTimeoutMillis: TCP_MSL_MILLIS * 2}
 
 	// passive close
-	TCP_CLOSE_WAIT   TcpState = TcpState{Name: "CLOSE_WAIT", IsPassiveClose: true}
-	TCP_LAST_ACK     TcpState = TcpState{Name: "LAST_ACK", IsPassiveClose: true}
-	TCP_FINAL_CLOSED TcpState = TcpState{Name: "CLOSED", IsPassiveClose: true}
+	TCP_CLOSE_WAIT   TcpState = TcpState{Name: "CLOSE_WAIT", IsPassiveClose: true, StateTimeoutMillis: 0}
+	TCP_LAST_ACK     TcpState = TcpState{Name: "LAST_ACK", IsPassiveClose: true, StateTimeoutMillis: TCP_STATE_DEFAULT_TIMEOUT_MILLIS}
+	TCP_FINAL_CLOSED TcpState = TcpState{Name: "CLOSED", IsPassiveClose: true, StateTimeoutMillis: 0}
 )
 
 type TcpTransitionEvent struct {
@@ -104,9 +109,15 @@ func (r *TcpTransitionResponse) GetCtrlFlags() int {
 }
 
 type TcpState struct {
-	Name           string
-	IsActiveClose  bool
-	IsPassiveClose bool
+	Name               string
+	IsActiveClose      bool
+	IsPassiveClose     bool
+	StateTimeoutMillis int
+	CloseOnTimeout     bool
+}
+
+func (state TcpState) CanTimeout() bool {
+	return state.StateTimeoutMillis > 0
 }
 
 type TcpTransition struct {
@@ -115,13 +126,48 @@ type TcpTransition struct {
 }
 
 type TcpStateMachine struct {
-	currentState TcpState
-	states       map[TcpTransition]TcpState
-	responses    map[TcpTransition]TcpTransitionResponse
+	currentState     TcpState
+	previousResponse TcpTransitionResponse
+	states           map[TcpTransition]TcpState
+	responses        map[TcpTransition]TcpTransitionResponse
+
+	stateTimer *time.Timer
+	retryCount int
+}
+
+func MakeTcpStateMachine(initialState TcpState, states map[TcpTransition]TcpState, responses map[TcpTransition]TcpTransitionResponse) TcpStateMachine {
+	emptyTimer := time.NewTimer(time.Duration(TCP_STATE_DEFAULT_TIMEOUT_MILLIS) * time.Millisecond)
+	if !emptyTimer.Stop() {
+		emptyTimer = time.NewTimer(time.Duration(1 * time.Hour))
+	}
+
+	return TcpStateMachine{
+		currentState:     initialState,
+		previousResponse: TCP_RESP_DO_NOTHING,
+		states:           states,
+		responses:        responses,
+		stateTimer:       emptyTimer,
+	}
 }
 
 func (m *TcpStateMachine) CurrentState() TcpState {
 	return m.currentState
+}
+
+func (m *TcpStateMachine) RetryCount() int {
+	return m.retryCount
+}
+
+func (m *TcpStateMachine) IncrementRetryCount() {
+	m.retryCount += 1
+}
+
+func (m *TcpStateMachine) TimerChannel() <-chan time.Time {
+	return m.stateTimer.C
+}
+
+func (m *TcpStateMachine) ResetStateTimer() {
+	m.stateTimer = time.NewTimer(time.Duration(m.CurrentState().StateTimeoutMillis) * time.Millisecond)
 }
 
 func (m *TcpStateMachine) HasTransition(event TcpTransitionEvent) bool {
@@ -143,6 +189,10 @@ func (m *TcpStateMachine) GetResponse(event TcpTransitionEvent) (TcpTransitionRe
 	return m.responses[transition], nil
 }
 
+func (m *TcpStateMachine) GetPreviousResponse() TcpTransitionResponse {
+	return m.previousResponse
+}
+
 func (m *TcpStateMachine) Transit(event TcpTransitionEvent) error {
 	if !m.HasTransition(event) {
 		return errors.New("Statemachine does not have transition for the given input event")
@@ -150,6 +200,12 @@ func (m *TcpStateMachine) Transit(event TcpTransitionEvent) error {
 
 	transition := TcpTransition{m.CurrentState(), event}
 	m.currentState = m.states[transition]
+	m.previousResponse = m.responses[transition]
+	m.retryCount = 0
+
+	if m.CurrentState().CanTimeout() {
+		m.stateTimer = time.NewTimer(time.Duration(m.CurrentState().StateTimeoutMillis) * time.Millisecond)
+	}
 
 	return nil
 }
@@ -174,5 +230,5 @@ func (b *TcpStateMachineBuilder) RegisterTransition(fromState TcpState, event Tc
 }
 
 func (b *TcpStateMachineBuilder) Build() TcpStateMachine {
-	return TcpStateMachine{b.initialState, b.states, b.responses}
+	return MakeTcpStateMachine(b.initialState, b.states, b.responses)
 }

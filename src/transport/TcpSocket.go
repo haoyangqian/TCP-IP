@@ -13,19 +13,19 @@ type TcpSocket struct {
 	StateMachine TcpStateMachine
 	SendToIpCh   chan<- model.SendMessageRequest
 
-	//	  sm StateMachine
-	//    sm.CurrentState()
-	//    sm.GetNextCtrl(RecvCtrl) -> CtrlToSend
-	//    sm.Transit()
-	//    sm.Transit(RecvCtrl, SentCtrl)
-
-	//	SendCh chan<- SendTcpMessageRequest
-	//	RecvCh chan model.IpPacket //receive Ip packet from Ip layer
+	lastSentSeq int
+	lastSentAck int
 }
 
 func MakeSocket(fd int, fsm TcpStateMachine, ch chan<- model.SendMessageRequest) TcpSocket {
 	buffer := make([]byte, 0)
-	return TcpSocket{fd, SocketAddr{model.VirtualIp{"0.0.0.0"}, 0, model.VirtualIp{"0.0.0.0"}, 0}, buffer, 0, fsm, ch}
+	return TcpSocket{
+		Fd:           fd,
+		Addr:         SocketAddr{model.VirtualIp{"0.0.0.0"}, 0, model.VirtualIp{"0.0.0.0"}, 0},
+		Buffer:       buffer,
+		StateMachine: fsm,
+		SendToIpCh:   ch,
+	}
 }
 
 /*
@@ -33,6 +33,9 @@ function : send syn to remote addr:port
 
 */
 func (socket *TcpSocket) SendCtrl(Ctrl int, seqnum int, acknum int, laddr model.VirtualIp, lport int, raddr model.VirtualIp, rport int) (int, error) {
+	socket.lastSentSeq = seqnum
+	socket.lastSentAck = acknum
+
 	//fmt.Printf("send ctrl() -- ctrl:%b,laddr:%s,lport,%d,raddr:%s,rport:%d\n", Ctrl, laddr.Ip, lport, raddr.Ip, rport)
 	tcpheader := MakeTcpHeader(lport, rport, seqnum, acknum, Ctrl, 0xaaaa)
 	socket.SeqNum = seqnum
@@ -71,7 +74,9 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 			}
 		}
 	}
+
 	event := MakeTcpTransitionEvent(tcppacket.Tcpheader)
+
 	//fmt.Printf("socket.Recv(): event: %+v\n", event)
 	//fmt.Printf("socket.Recv(): current state:%s", socket.StateMachine.CurrentState().Name)
 	// state will change, execute statemachine response
@@ -110,4 +115,21 @@ func (socket *TcpSocket) ReadFromBuffer(bytes int, block bool) []byte {
 	} else {
 		return socket.Buffer
 	}
+}
+
+func (socket *TcpSocket) RepeatPreviousStateAction() {
+	previousResponse := socket.StateMachine.GetPreviousResponse()
+
+	if previousResponse.ShouldDoNothing() {
+		return
+	}
+
+	if previousResponse.ShouldDeleteSocket {
+		// socket clean up
+	}
+
+	ctrlFlags := previousResponse.GetCtrlFlags()
+	socket.SendCtrl(ctrlFlags, socket.lastSentSeq, socket.lastSentAck, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
+
+	socket.StateMachine.IncrementRetryCount()
 }

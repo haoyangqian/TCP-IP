@@ -7,6 +7,11 @@ import (
 	"model"
 	"os"
 	"text/tabwriter"
+	"time"
+)
+
+var (
+	TCP_HANDSHAKE_MAX_RETRY int = 3
 )
 
 type SocketManager struct {
@@ -201,17 +206,31 @@ func (manager *SocketManager) V_connect(socketfd int, addr model.VirtualIp, port
 	runner, _ := manager.GetRunnerByFd(socketfd)
 	socket := runner.Socket
 	ctrl, _ := socket.StateMachine.GetResponse(TCP_ACTIVE_OPEN)
+
+	//setaddr ,  update record in mapbyaddr
+	manager.SetSocketAddr(socketfd, SocketAddr{socket.Addr.LocalIp, socket.Addr.LocalPort, addr, port})
+	socket.StateMachine.Transit(TCP_ACTIVE_OPEN)
+
 	//send syn
 	_, err := socket.SendCtrl(ctrl.GetCtrlFlags(), int(rand.Int31()), 0, socket.Addr.LocalIp, socket.Addr.LocalPort, addr, port)
 	if err != nil {
 		return -1, errors.New("v_connect() error: sendctrl() went wrong")
 	}
-	//setaddr ,  update record in mapbyaddr
-	manager.SetSocketAddr(socketfd, SocketAddr{socket.Addr.LocalIp, socket.Addr.LocalPort, addr, port})
-	socket.StateMachine.Transit(TCP_ACTIVE_OPEN)
+
 	go runner.Run()
-	fmt.Println("v_connect() return 0")
-	return 0, nil
+
+	startTimeMillis := int(time.Now().UnixNano() / int64(time.Millisecond))
+	for {
+		if socket.StateMachine.CurrentState() == TCP_ESTAB {
+			fmt.Println("v_connect() return 0")
+			return 0, nil
+		}
+
+		// if current time is ahead of start time + 3 timeouts + a small jitter, consider the connection timed out
+		if int(time.Now().UnixNano()/int64(time.Millisecond)) > (startTimeMillis + TCP_STATE_DEFAULT_TIMEOUT_MILLIS*TCP_MAX_RETRY_COUNT + 100) {
+			return -1, errors.New("v_connect() error: timed out")
+		}
+	}
 }
 
 func (manager *SocketManager) V_accept(listenfd int, addr *model.VirtualIp, port *int) (int, error) {
