@@ -245,6 +245,33 @@ func main() {
 		tokens := strings.Split(line, " ")
 		command := strings.ToLower(tokens[0])
 		switch command {
+		case "vsocket":
+			socketmanager.V_socket()
+		case "vbind":
+			listenfd, _ := strconv.Atoi(tokens[1])
+			ip := tokens[2]
+			port, _ := strconv.Atoi(tokens[3])
+			port = port % 65535
+			socketmanager.V_bind(listenfd, model.VirtualIp{ip}, port)
+		case "vlisten":
+			listenfd, _ := strconv.Atoi(tokens[1])
+			socketmanager.V_listen(listenfd)
+		case "vconnect":
+			socketfd, _ := strconv.Atoi(tokens[1])
+			ip := tokens[2]
+			port, _ := strconv.Atoi(tokens[3])
+			socketmanager.V_connect(socketfd, model.VirtualIp{ip}, port)
+		case "vaccept":
+			listenfd, _ := strconv.Atoi(tokens[1])
+			var addr model.VirtualIp
+			var port int
+			//wait for connection...blocking
+			newFd, _ := socketmanager.V_accept(listenfd, &addr, &port)
+			//fmt.Println("Accept returned from V_accept")
+			listenSocket, _ := socketmanager.GetSocketByFd(listenfd)
+			newrunner, _ := socketmanager.GetRunnerByFd(newFd)
+			socketmanager.SetSocketAddr(newFd, transport.SocketAddr{listenSocket.Addr.LocalIp, listenSocket.Addr.LocalPort, addr, port})
+			go newrunner.Run()
 		case "sockets":
 			socketmanager.PrintSockets()
 		case "accept":

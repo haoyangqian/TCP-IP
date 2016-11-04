@@ -60,6 +60,6 @@ func (handler IpHandler) handlePacket(ipPacket model.IpPacket) {
 		tcprunner.RecvFromIpCh <- ipPacket
 		return
 	}
-	fmt.Printf("Can not find socket runner in map %+v\n", socketAddr)
+	//fmt.Printf("Can not find socket runner in map %+v\n", socketAddr)
 	return
 }
