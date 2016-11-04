@@ -2,6 +2,7 @@ package transport
 
 import (
 	"errors"
+	"logging"
 	"time"
 )
 
@@ -126,6 +127,7 @@ type TcpTransition struct {
 }
 
 type TcpStateMachine struct {
+	fd               int
 	currentState     TcpState
 	previousResponse TcpTransitionResponse
 	states           map[TcpTransition]TcpState
@@ -135,13 +137,14 @@ type TcpStateMachine struct {
 	retryCount int
 }
 
-func MakeTcpStateMachine(initialState TcpState, states map[TcpTransition]TcpState, responses map[TcpTransition]TcpTransitionResponse) TcpStateMachine {
+func MakeTcpStateMachine(fd int, initialState TcpState, states map[TcpTransition]TcpState, responses map[TcpTransition]TcpTransitionResponse) TcpStateMachine {
 	emptyTimer := time.NewTimer(time.Duration(TCP_STATE_DEFAULT_TIMEOUT_MILLIS) * time.Millisecond)
 	if !emptyTimer.Stop() {
 		emptyTimer = time.NewTimer(time.Duration(1 * time.Hour))
 	}
 
 	return TcpStateMachine{
+		fd:               fd,
 		currentState:     initialState,
 		previousResponse: TCP_RESP_DO_NOTHING,
 		states:           states,
@@ -207,6 +210,7 @@ func (m *TcpStateMachine) Transit(event TcpTransitionEvent) error {
 		m.stateTimer = time.NewTimer(time.Duration(m.CurrentState().StateTimeoutMillis) * time.Millisecond)
 	}
 
+	logging.Logger.Println("[TcpStateMachine]", m.fd, "has transited into state", m.CurrentState().Name)
 	return nil
 }
 
@@ -229,6 +233,6 @@ func (b *TcpStateMachineBuilder) RegisterTransition(fromState TcpState, event Tc
 	b.responses[transition] = response
 }
 
-func (b *TcpStateMachineBuilder) Build() TcpStateMachine {
-	return MakeTcpStateMachine(b.initialState, b.states, b.responses)
+func (b *TcpStateMachineBuilder) Build(fd int) TcpStateMachine {
+	return MakeTcpStateMachine(fd, b.initialState, b.states, b.responses)
 }

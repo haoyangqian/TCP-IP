@@ -2,6 +2,7 @@ package transport
 
 import (
 	"fmt"
+	"logging"
 	"model"
 )
 
@@ -31,12 +32,12 @@ func (runner *SocketRunner) Run() {
 				continue
 			}
 
-			fmt.Println("socket state timed out , retry!", runner.Socket.StateMachine.RetryCount(), runner.Socket.Fd, runner.Socket.StateMachine.CurrentState())
 			if runner.Socket.StateMachine.RetryCount() >= TCP_MAX_RETRY_COUNT {
 				// terminate this thread, this socket is literally dead
 				return
 			}
 
+			logging.Logger.Println("[SocketRunner]", runner.Socket.Fd, "socket state timed out, retrying #", runner.Socket.StateMachine.RetryCount())
 			runner.Socket.RepeatPreviousStateAction()
 			runner.Socket.StateMachine.ResetStateTimer()
 		}

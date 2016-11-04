@@ -8,6 +8,7 @@ import "text/tabwriter"
 
 import (
 	"factory"
+	"logging"
 	"model"
 	"net"
 	"sort"
@@ -217,6 +218,8 @@ func main() {
 	link_file := os.Args[1]
 	//link_file := "src.lnx"
 	interfaces := ReadLnx(link_file)
+
+	logging.Init(link_file)
 
 	table := SetRoutingtable(interfaces)
 

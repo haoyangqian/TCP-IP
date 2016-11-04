@@ -36,7 +36,7 @@ func TestStateMachine() {
 
 	builder.RegisterTransition(TCP_LAST_ACK, TCP_RECV_ACK, TCP_RESP_DO_NOTHING, TCP_FINAL_CLOSED)
 
-	machine := builder.Build()
+	machine := builder.Build(1)
 
 	machine.CurrentState()
 	var r TcpTransitionResponse

@@ -135,7 +135,7 @@ func (manager *SocketManager) V_socket() int {
 	//create a new socket
 	//manager.PrintSockets()
 	manager.fdcount += 1
-	stateMachine := manager.fsmBuilder.Build()
+	stateMachine := manager.fsmBuilder.Build(manager.fdcount)
 	socket := MakeSocket(manager.fdcount, stateMachine, manager.sendToIpCh)
 	//create a new runner
 	runner := MakeSocketRunner(&socket, manager, make(chan model.IpPacket))
