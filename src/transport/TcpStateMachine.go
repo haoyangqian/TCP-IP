@@ -10,7 +10,7 @@ import (
  * Constants
  */
 var (
-	TCP_STATE_DEFAULT_TIMEOUT_MILLIS = 250
+	TCP_STATE_DEFAULT_TIMEOUT_MILLIS = 2500
 	TCP_MSL_MILLIS                   = 60 * 1000
 	TCP_MAX_RETRY_COUNT              = 3
 

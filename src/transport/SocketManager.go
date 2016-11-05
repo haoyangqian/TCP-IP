@@ -271,7 +271,12 @@ func (manager *SocketManager) V_read(socket int, buf []byte, nbyte int) int {
 	return 0
 }
 
-func (manager *SocketManager) V_write(socket int, buf []byte, nbyte int) int {
+func (manager *SocketManager) V_write(socketfd int, buf []byte, nbyte int) int {
+	//put data into buffer
+	//if full, blocking
+	//socket := manager.GetSocketByFd(socketfd)
+	//socket.AddToBuffer(buf, nbyte)
+
 	return 0
 }
 

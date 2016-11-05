@@ -220,6 +220,7 @@ func main() {
 	interfaces := ReadLnx(link_file)
 
 	logging.Init(link_file)
+	logging.Logger.Println("*********************************************************")
 
 	table := SetRoutingtable(interfaces)
 
@@ -243,6 +244,7 @@ func main() {
 	//go
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Print("> ")
+	//transport.Heaptest()
 	for scanner.Scan() {
 		line := scanner.Text()
 		tokens := strings.Split(line, " ")

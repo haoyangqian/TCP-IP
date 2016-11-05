@@ -2,16 +2,6 @@ package transport
 
 import ()
 
-type PacketInFlight struct {
-	ExpireTimeNanos int64
-	Packet          TcpPacket
-	HasAcked        bool
-}
-
-func (p *PacketInFlight) MarkAsAcked() {
-	p.HasAcked = true
-}
-
 //type SenderSlidingWindow struct {
 //	lastByteAcked   int
 //	lastByteSent    int

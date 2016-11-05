@@ -2,7 +2,12 @@ package transport
 
 import (
 	//"fmt"
+	"logging"
 	"model"
+)
+
+const (
+	MAX_SENDER_BUFFER_SIZE = 512
 )
 
 type TcpSocket struct {
@@ -12,13 +17,12 @@ type TcpSocket struct {
 	SeqNum       int
 	StateMachine TcpStateMachine
 	SendToIpCh   chan<- model.SendMessageRequest
-
-	lastSentSeq int
-	lastSentAck int
+	lastSentSeq  int
+	lastSentAck  int
 }
 
 func MakeSocket(fd int, fsm TcpStateMachine, ch chan<- model.SendMessageRequest) TcpSocket {
-	buffer := make([]byte, 0)
+	buffer := make([]byte, MAX_SENDER_BUFFER_SIZE)
 	return TcpSocket{
 		Fd:           fd,
 		Addr:         SocketAddr{model.VirtualIp{"0.0.0.0"}, 0, model.VirtualIp{"0.0.0.0"}, 0},
@@ -26,6 +30,10 @@ func MakeSocket(fd int, fsm TcpStateMachine, ch chan<- model.SendMessageRequest)
 		StateMachine: fsm,
 		SendToIpCh:   ch,
 	}
+}
+
+func (socket *TcpSocket) AddToBuffer(buf []byte, nbyte int) {
+
 }
 
 /*
@@ -36,7 +44,7 @@ func (socket *TcpSocket) SendCtrl(Ctrl int, seqnum int, acknum int, laddr model.
 	socket.lastSentSeq = seqnum
 	socket.lastSentAck = acknum
 
-	//fmt.Printf("send ctrl() -- ctrl:%b,laddr:%s,lport,%d,raddr:%s,rport:%d\n", Ctrl, laddr.Ip, lport, raddr.Ip, rport)
+	logging.Logger.Printf("[TcpSocket] send ctrl()--ctrl:%b,laddr:%s,lport,%d,raddr:%s,rport:%d\n", Ctrl, laddr.Ip, lport, raddr.Ip, rport)
 	tcpheader := MakeTcpHeader(lport, rport, seqnum, acknum, Ctrl, 0xaaaa)
 	socket.SeqNum = seqnum
 	tcppacket := MakeTcpPacket([]byte{}, tcpheader)
@@ -69,16 +77,13 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 	if socket.StateMachine.CurrentState() != TCP_ESTAB {
 		if tcppacket.Tcpheader.HasFlag(ACK) {
 			if tcppacket.Tcpheader.AckNum != socket.SeqNum+1 {
-				//fmt.Printf("Mismatch AckNum, acknum:%d, seqnum:%d\n", tcppacket.Tcpheader.AckNum, socket.SeqNum)
+				logging.Logger.Printf("[TcpSocket] Mismatch AckNum -- acknum:%d, seqnum:%d\n", tcppacket.Tcpheader.AckNum, socket.SeqNum)
 				return
 			}
 		}
 	}
-
+	logging.Logger.Printf("[TcpSocket] recv ctrl()--ctrl:%b,laddr:%s,lport,%d,raddr:%s,rport:%d\n", tcppacket.Tcpheader.Ctrl, packet.Ipheader.Dst, tcppacket.Tcpheader.Destination, packet.Ipheader.Src, tcppacket.Tcpheader.Source)
 	event := MakeTcpTransitionEvent(tcppacket.Tcpheader)
-
-	//fmt.Printf("socket.Recv(): event: %+v\n", event)
-	//fmt.Printf("socket.Recv(): current state:%s", socket.StateMachine.CurrentState().Name)
 	// state will change, execute statemachine response
 	if socket.StateMachine.HasTransition(event) {
 		//fmt.Printf("transition : %+v\n", event)
@@ -91,18 +96,13 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 			} else {
 				ctrl := resp.GetCtrlFlags()
 				//fmt.Printf("should send: ctrl : %b\n", ctrl)
-				socket.SendCtrl(ctrl, 0, tcppacket.Tcpheader.SeqNum+1, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
+				socket.SendCtrl(ctrl, socket.lastSentSeq, tcppacket.Tcpheader.SeqNum+1, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
 			}
 
 		}
 
 		socket.StateMachine.Transit(event)
 	}
-
-	// state does not change
-	// if socket.StateMachine.CurrentState() == TCP_ESTABLISHED || socket.StateMachine.CurrentState().IsActiveClose() {
-	// sliding window blah blah blah
-	// }
 }
 
 func (socket *TcpSocket) ReadFromBuffer(bytes int, block bool) []byte {
