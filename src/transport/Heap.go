@@ -5,13 +5,6 @@ import (
 	"fmt"
 )
 
-type PacketInFlight struct {
-	ExpireTimeNanos int64
-	//Packet          TcpPacket
-	HasAcked bool
-	index    int
-}
-
 // A PriorityQueue implements heap.Interface and holds Items.
 type PriorityQueue []*PacketInFlight
 
@@ -24,14 +17,14 @@ func (pq PriorityQueue) Less(i, j int) bool {
 
 func (pq PriorityQueue) Swap(i, j int) {
 	pq[i], pq[j] = pq[j], pq[i]
-	pq[i].index = i
-	pq[j].index = j
+	pq[i].Index = i
+	pq[j].Index = j
 }
 
 func (pq *PriorityQueue) Push(x interface{}) {
 	n := len(*pq)
 	item := x.(*PacketInFlight)
-	item.index = n
+	item.Index = n
 	*pq = append(*pq, item)
 }
 
@@ -39,7 +32,7 @@ func (pq *PriorityQueue) Pop() interface{} {
 	old := *pq
 	n := len(old)
 	item := old[n-1]
-	item.index = -1 // for safety
+	item.Index = -1 // for safety
 	*pq = old[0 : n-1]
 	return item
 }
@@ -48,7 +41,7 @@ func (pq *PriorityQueue) Pop() interface{} {
 func (pq *PriorityQueue) update(item *PacketInFlight, time int64, hasAcked bool) {
 	item.ExpireTimeNanos = time
 	item.HasAcked = hasAcked
-	heap.Fix(pq, item.index)
+	heap.Fix(pq, item.Index)
 }
 
 // This example creates a PriorityQueue with some items, adds and manipulates an item,

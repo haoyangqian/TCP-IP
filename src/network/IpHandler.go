@@ -42,7 +42,7 @@ func (handler IpHandler) handlePacket(ipPacket model.IpPacket) {
 	//fmt.Printf("receive ippacket in Ip layer, localIp: %s, localport : %d, remoteIp: %s , remoteport: %d\n", localIp, localPort, remoteIp, remotePort)
 	if recvcheck != calchecksum {
 		fmt.Printf("Tcp Checksum Mismatch!recvcheck:%d, calcheck:%d\n", recvcheck, calchecksum)
-		return
+		//		return
 	}
 
 	socketAddr := transport.SocketAddr{localIp, localPort, remoteIp, remotePort}

@@ -11,22 +11,27 @@ const (
 )
 
 type TcpSocket struct {
-	Fd           int
-	Addr         SocketAddr
-	Buffer       []byte
+	Fd   int
+	Addr SocketAddr
+	//	Buffer       []byte
 	SeqNum       int
 	StateMachine TcpStateMachine
 	SendToIpCh   chan<- model.SendMessageRequest
-	lastSentSeq  int
-	lastSentAck  int
+
+	lastSentSeq int
+	lastSentAck int
+
+	//	sendWindow SenderSlidingWindow
+	recvWindow ReceiverSlidingWindow
 }
 
 func MakeSocket(fd int, fsm TcpStateMachine, ch chan<- model.SendMessageRequest) TcpSocket {
-	buffer := make([]byte, MAX_SENDER_BUFFER_SIZE)
+	//	buffer := make([]byte, MAX_SENDER_BUFFER_SIZE)
+	//	recvWindow := MakeReceiverSlidingWindow(MAX_SENDER_BUFFER_SIZE)
 	return TcpSocket{
-		Fd:           fd,
-		Addr:         SocketAddr{model.VirtualIp{"0.0.0.0"}, 0, model.VirtualIp{"0.0.0.0"}, 0},
-		Buffer:       buffer,
+		Fd:   fd,
+		Addr: SocketAddr{model.VirtualIp{"0.0.0.0"}, 0, model.VirtualIp{"0.0.0.0"}, 0},
+		//		Buffer:       buffer,
 		StateMachine: fsm,
 		SendToIpCh:   ch,
 	}
@@ -72,6 +77,11 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 	// unmarshall into TCP packet
 	// recv
 	tcppacket := ConvertToTcpPacket(packet.Payload)
+
+	if socket.recvWindow.bufferSize == 0 {
+		socket.recvWindow = MakeReceiverSlidingWindow(tcppacket.Tcpheader.Window)
+		logging.Logger.Printf("[TcpSocket] %d Initilized Recv Window, ring Size: %d, advertisedWindowSize: %d\n", socket.Fd, socket.recvWindow.bufferSize, socket.recvWindow.AdvertisedWindowSize())
+	}
 	//fmt.Println(tcppacket.TcpPacketString())
 
 	if socket.StateMachine.CurrentState() != TCP_ESTAB {
@@ -102,18 +112,38 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 		}
 
 		socket.StateMachine.Transit(event)
+		return
+	}
+
+	if len(tcppacket.Payload) > 0 && (socket.StateMachine.CurrentState() == TCP_ESTAB || socket.StateMachine.CurrentState().IsActiveClose) {
+		logging.Logger.Printf("[TcpSocket] %d receiving data packet", socket.Fd)
+		ack := socket.recvWindow.Receive(tcppacket.Tcpheader.SeqNum, tcppacket.Payload)
+
+		socket.SendCtrl(ACK, 0, ack, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
 	}
 }
 
 func (socket *TcpSocket) ReadFromBuffer(bytes int, block bool) []byte {
+	// blocking
 	if block {
-		for len(socket.Buffer) < bytes {
-			// if connection closes, break
-		}
+		bytesRead := 0
+		buffer := make([]byte, bytes)
 
-		return socket.Buffer
+		for {
+			if bytesRead == bytes {
+				break
+			}
+
+			readBuffer, read := socket.recvWindow.Read(bytes - bytesRead)
+			buffer = append(buffer, readBuffer...)
+			bytesRead += read
+		}
+		return buffer
+
+		// non-blocking
 	} else {
-		return socket.Buffer
+		buffer, _ := socket.recvWindow.Read(bytes)
+		return buffer
 	}
 }
 

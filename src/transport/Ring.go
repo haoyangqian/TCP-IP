@@ -6,6 +6,11 @@ import (
 	//"time"
 )
 
+type TcpByte struct {
+	SeqNum int
+	B      byte
+}
+
 func Distance(src *ring.Ring, dst *ring.Ring) int {
 	count := 0
 	cur := src
@@ -26,6 +31,7 @@ func Ringtest() {
 	first := r
 	second := r
 	third := r
+
 	for i := 0; i < r.Len(); i++ {
 		r.Value = i
 		r = r.Next()

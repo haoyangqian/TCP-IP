@@ -339,6 +339,18 @@ func main() {
 				request := model.MakeSendMessageRequest(payload.ConvertToBuffer(), prot, model.VirtualIp{dstIp})
 				factory.MessageChannel() <- request
 			}
+		case "recv":
+			if len(tokens) != 4 {
+				fmt.Println("invalid args: recv [socket] [numbytes] [y/n] ")
+				break
+			}
+
+			socketFd, _ := strconv.Atoi(tokens[1])
+			nBytes, _ := strconv.Atoi(tokens[2])
+
+			buff, size := socketmanager.V_read(socketFd, nBytes)
+			fmt.Printf("%d bytes read from V_read\n", size)
+			fmt.Println(string(buff))
 		case "interfaces":
 			PrintInterfaces(interfaceTable)
 		case "di":
