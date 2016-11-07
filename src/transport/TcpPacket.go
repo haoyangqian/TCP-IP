@@ -1,7 +1,7 @@
 package transport
 
 import (
-	"fmt"
+	"logging"
 )
 
 type TcpPacket struct {
@@ -13,9 +13,8 @@ func MakeTcpPacket(message []byte, h TCPHeader) TcpPacket {
 	return TcpPacket{h, message}
 }
 
-func (Tcp *TcpPacket) TcpPacketString() string {
-	returnstring := fmt.Sprintf("  src_port:   %d\n  dst_port:   %d\n   payload:  %s\n", Tcp.Tcpheader.Source, Tcp.Tcpheader.Destination, string(Tcp.Payload[:]))
-	return returnstring
+func (Tcp *TcpPacket) PrintTcpPacketString() {
+	logging.Logger.Printf("[TcpPacket] tcpheader:%+v\n payload:  %s\n", Tcp.Tcpheader, string(Tcp.Payload[:]))
 }
 
 func (Tcp *TcpPacket) ConvertToBuffer() []byte {
@@ -29,4 +28,40 @@ func ConvertToTcpPacket(buffer []byte) TcpPacket {
 	index := 4 * int(tcpHeader.DataOffset)
 	payload := buffer[index:]
 	return TcpPacket{*tcpHeader, payload}
+}
+
+// TCP Checksum
+func Csum(data []byte, srcip, dstip []byte) int {
+
+	pseudoHeader := []byte{
+		srcip[0], srcip[1], srcip[2], srcip[3],
+		dstip[0], dstip[1], dstip[2], dstip[3],
+		0,                  // zero
+		6,                  // protocol number (6 == TCP)
+		0, byte(len(data)), // TCP length (16 bits), not inc pseudo header
+	}
+
+	sumThis := make([]byte, 0, len(pseudoHeader)+len(data))
+	sumThis = append(sumThis, pseudoHeader...)
+	sumThis = append(sumThis, data...)
+	//fmt.Printf("% x\n", sumThis)
+
+	lenSumThis := len(sumThis)
+	var nextWord uint16
+	var sum uint32
+	for i := 0; i+1 < lenSumThis; i += 2 {
+		nextWord = uint16(sumThis[i])<<8 | uint16(sumThis[i+1])
+		sum += uint32(nextWord)
+	}
+	if lenSumThis%2 != 0 {
+		//fmt.Println("Odd byte")
+		sum += uint32(sumThis[lenSumThis])
+	}
+
+	// Add back any carry, and any carry from adding the carry
+	sum = (sum >> 16) + (sum & 0xffff)
+	sum = sum + (sum >> 16)
+	answer := uint16(0xffffffff ^ sum)
+	// Bitwise complement
+	return int(answer)
 }

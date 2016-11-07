@@ -12,18 +12,18 @@ type IpHandler struct {
 }
 
 func (handler IpHandler) Handle(packet model.IpPacket, receivedFrom model.VirtualIp) {
-	//printPacketInfo(packet)
+	printPacketInfo(packet)
 	handler.handlePacket(packet)
 
 }
 
 func printPacketInfo(packet model.IpPacket) {
-	fmt.Println("driver received packet:")
-	fmt.Println(packet.IpPacketString())
+	//fmt.Println("driver received packet:")
+	//fmt.Println(packet.IpPacketString())
 	tcppacket := transport.ConvertToTcpPacket(packet.Payload)
-	fmt.Println(tcppacket.TcpPacketString())
-	fmt.Printf("ctrl info: %b\n", tcppacket.Tcpheader.Ctrl)
-	fmt.Print("> ")
+	tcppacket.PrintTcpPacketString()
+	//fmt.Printf("ctrl info: %b\n", tcppacket.Tcpheader.Ctrl)
+	//fmt.Print("> ")
 }
 
 func (handler IpHandler) handlePacket(ipPacket model.IpPacket) {
@@ -38,7 +38,13 @@ func (handler IpHandler) handlePacket(ipPacket model.IpPacket) {
 	tcpbytes := ipPacket.Payload
 	tcpbytes[16] = 0
 	tcpbytes[17] = 0
-	calchecksum := int(transport.Csum(tcpbytes, remoteIp.Vip2Int(), localIp.Vip2Int()))
+	//fmt.Printf("tcpbytes length:%d payload:%s", len(tcpbytes), tcpbytes[21])
+	//tcpPacket.Tcpheader.Checksum = 0
+	//tcpbytes := tcpPacket.ConvertToBuffer()
+	if len(tcpbytes) > 20 {
+		fmt.Printf("tcpbytes length:%d payload:%s\n", len(tcpbytes), string(tcpbytes[21]))
+	}
+	calchecksum := transport.Csum(tcpbytes, remoteIp.Vip2Int(), localIp.Vip2Int())
 	//fmt.Printf("receive ippacket in Ip layer, localIp: %s, localport : %d, remoteIp: %s , remoteport: %d\n", localIp, localPort, remoteIp, remotePort)
 	if recvcheck != calchecksum {
 		fmt.Printf("Tcp Checksum Mismatch!recvcheck:%d, calcheck:%d\n", recvcheck, calchecksum)

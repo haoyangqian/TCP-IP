@@ -245,7 +245,7 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Print("> ")
 	//transport.Heaptest()
-	transport.Ringtest()
+	//transport.Ringtest()
 	for scanner.Scan() {
 		line := scanner.Text()
 		tokens := strings.Split(line, " ")
