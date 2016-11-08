@@ -41,9 +41,6 @@ func (handler IpHandler) handlePacket(ipPacket model.IpPacket) {
 	//fmt.Printf("tcpbytes length:%d payload:%s", len(tcpbytes), tcpbytes[21])
 	//tcpPacket.Tcpheader.Checksum = 0
 	//tcpbytes := tcpPacket.ConvertToBuffer()
-	if len(tcpbytes) > 20 {
-		fmt.Printf("tcpbytes length:%d payload:%s\n", len(tcpbytes), string(tcpbytes[21]))
-	}
 	calchecksum := transport.Csum(tcpbytes, remoteIp.Vip2Int(), localIp.Vip2Int())
 	//fmt.Printf("receive ippacket in Ip layer, localIp: %s, localport : %d, remoteIp: %s , remoteport: %d\n", localIp, localPort, remoteIp, remotePort)
 	if recvcheck != calchecksum {

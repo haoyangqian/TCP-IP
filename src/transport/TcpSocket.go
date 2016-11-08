@@ -48,11 +48,11 @@ function : send syn to remote addr:port
 func (socket *TcpSocket) SendCtrl(Ctrl int, seqnum int, acknum int, laddr model.VirtualIp, lport int, raddr model.VirtualIp, rport int) (int, error) {
 	socket.lastSentSeq = seqnum
 	socket.lastSentAck = acknum
-
-	logging.Logger.Printf("[TcpSocket] send ctrl()--ctrl:%b,laddr:%s,lport,%d,raddr:%s,rport:%d\n", Ctrl, laddr.Ip, lport, raddr.Ip, rport)
-	tcpheader := MakeTcpHeader(lport, rport, seqnum, acknum, Ctrl, 0xaaaa)
 	socket.SeqNum = seqnum
+
+	tcpheader := MakeTcpHeader(lport, rport, seqnum, acknum, Ctrl, socket.recvWindow.AdvertisedWindowSize())
 	tcppacket := MakeTcpPacket([]byte{}, tcpheader)
+	logging.Logger.Printf("[TcpSocket] send ctrl()--ctrl:%b,window size: %d seqnum: %d acknum: %d\n", tcpheader.Ctrl, tcpheader.Window, tcpheader.SeqNum, tcpheader.AckNum)
 	//set tcp checksum
 	data := tcppacket.ConvertToBuffer()
 	tcppacket.Tcpheader.Checksum = int(Csum(data, laddr.Vip2Int(), raddr.Vip2Int()))

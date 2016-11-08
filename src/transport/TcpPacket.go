@@ -1,6 +1,8 @@
 package transport
 
 import (
+	"encoding/binary"
+	//"fmt"
 	"logging"
 )
 
@@ -14,7 +16,7 @@ func MakeTcpPacket(message []byte, h TCPHeader) TcpPacket {
 }
 
 func (Tcp *TcpPacket) PrintTcpPacketString() {
-	logging.Logger.Printf("[TcpPacket] tcpheader:%+v\n payload:  %s\n", Tcp.Tcpheader, string(Tcp.Payload[:]))
+	logging.Logger.Printf("[IpHandler][TcpPacket] PrintTcpPacketString tcpheader:%+v\n \n", Tcp.Tcpheader)
 }
 
 func (Tcp *TcpPacket) ConvertToBuffer() []byte {
@@ -36,11 +38,12 @@ func Csum(data []byte, srcip, dstip []byte) int {
 	pseudoHeader := []byte{
 		srcip[0], srcip[1], srcip[2], srcip[3],
 		dstip[0], dstip[1], dstip[2], dstip[3],
-		0,                  // zero
-		6,                  // protocol number (6 == TCP)
-		0, byte(len(data)), // TCP length (16 bits), not inc pseudo header
+		0,    // zero
+		6,    // protocol number (6 == TCP)
+		0, 0, // TCP length (16 bits), not inc pseudo header
 	}
-
+	//fmt.Println("pseudo header length:", len(pseudoHeader))
+	binary.BigEndian.PutUint16(pseudoHeader[10:12], uint16(len(data)))
 	sumThis := make([]byte, 0, len(pseudoHeader)+len(data))
 	sumThis = append(sumThis, pseudoHeader...)
 	sumThis = append(sumThis, data...)
@@ -55,7 +58,7 @@ func Csum(data []byte, srcip, dstip []byte) int {
 	}
 	if lenSumThis%2 != 0 {
 		//fmt.Println("Odd byte")
-		sum += uint32(sumThis[lenSumThis])
+		sum += uint32(sumThis[lenSumThis-1])
 	}
 
 	// Add back any carry, and any carry from adding the carry

@@ -22,6 +22,7 @@ var (
 	TCP_RECV_SYN     TcpTransitionEvent = TcpTransitionEvent{RecvSyn: true}
 	TCP_RECV_ACK     TcpTransitionEvent = TcpTransitionEvent{RecvAck: true}
 	TCP_RECV_FIN     TcpTransitionEvent = TcpTransitionEvent{RecvFin: true}
+	TCP_RECV_FIN_ACK TcpTransitionEvent = TcpTransitionEvent{RecvFin: true, RecvAck: true}
 	TCP_RECV_SYN_ACK TcpTransitionEvent = TcpTransitionEvent{RecvSyn: true, RecvAck: true}
 	TCP_TIMEOUT_2MSL TcpTransitionEvent = TcpTransitionEvent{Timeout: true}
 

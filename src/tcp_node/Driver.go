@@ -351,6 +351,16 @@ func main() {
 			buff, size := socketmanager.V_read(socketFd, nBytes)
 			fmt.Printf("%d bytes read from V_read\n", size)
 			fmt.Println(string(buff))
+		case "recvfile":
+			if len(tokens) != 3 {
+				fmt.Println("invalid args: recvfile [filename] [port] ")
+			}
+
+			filename := tokens[1]
+			port, _ := strconv.Atoi(tokens[2])
+			port = port % 65535
+			filereceiver := transport.MakeFileReceiver(socketmanager, port, filename)
+			go filereceiver.Recv()
 		case "interfaces":
 			PrintInterfaces(interfaceTable)
 		case "di":

@@ -141,7 +141,8 @@ func makeTcpFsmBuilder() transport.TcpStateMachineBuilder {
 	builder.RegisterTransition(transport.TCP_SYN_SENT, transport.TCP_RECV_SYN_ACK, transport.TCP_RESP_SEND_ACK, transport.TCP_ESTAB)
 
 	builder.RegisterTransition(transport.TCP_ESTAB, transport.TCP_CLOSE, transport.TCP_RESP_SEND_FIN, transport.TCP_FIN_WAIT_1)
-	builder.RegisterTransition(transport.TCP_ESTAB, transport.TCP_RECV_FIN, transport.TCP_RESP_SEND_ACK, transport.TCP_CLOSE_WAIT)
+	//doubt
+	builder.RegisterTransition(transport.TCP_ESTAB, transport.TCP_RECV_FIN_ACK, transport.TCP_RESP_SEND_ACK, transport.TCP_CLOSE_WAIT)
 
 	builder.RegisterTransition(transport.TCP_FIN_WAIT_1, transport.TCP_RECV_ACK, transport.TCP_RESP_DO_NOTHING, transport.TCP_FIN_WAIT_2)
 	builder.RegisterTransition(transport.TCP_FIN_WAIT_1, transport.TCP_RECV_FIN, transport.TCP_RESP_SEND_ACK, transport.TCP_CLOSING)
