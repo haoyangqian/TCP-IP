@@ -2,8 +2,9 @@ package transport
 
 import (
 	"container/ring"
-	//"fmt"
+	//	"fmt"
 	"logging"
+	"strconv"
 	"sync"
 )
 
@@ -15,6 +16,9 @@ type ReceiverSlidingWindow struct {
 	buffer     *ring.Ring
 	bufferSize int
 	Lock       *sync.RWMutex
+
+	nextSeqNumExpected int
+	totalBytesRecevied int
 }
 
 func MakeReceiverSlidingWindow(bufferSize int) ReceiverSlidingWindow {
@@ -33,12 +37,12 @@ func MakeReceiverSlidingWindow(bufferSize int) ReceiverSlidingWindow {
 	}
 }
 
+func (w *ReceiverSlidingWindow) SetNextExpectedSeqNum(seqNum int) {
+	w.nextSeqNumExpected = seqNum
+}
+
 func (w *ReceiverSlidingWindow) AdvertisedWindowSize() int {
-	if w.lastByteReceived == w.lastByteRead {
-		return MAX_WINDOWSIZE
-	} else {
-		return w.bufferSize - (Distance(w.lastByteRead, w.nextByteExpected.Prev()))
-	}
+	return w.bufferSize - (Distance(w.lastByteRead, w.nextByteExpected))
 }
 
 func (w *ReceiverSlidingWindow) Receive(seqNum int, payload []byte) int {
@@ -46,51 +50,79 @@ func (w *ReceiverSlidingWindow) Receive(seqNum int, payload []byte) int {
 	//logging.Logger.Printf("[DEBUG][RecvWindow] payload length: %d\n", len(payload))
 	w.Lock.Lock()
 	defer w.Lock.Unlock()
-	if w.nextByteExpected.Prev().Value != nil {
-		windowStart := w.nextByteExpected.Prev().Value.(TcpByte)
-		if seqNum <= windowStart.SeqNum || seqNum > windowStart.SeqNum+w.AdvertisedWindowSize() || len(payload) > w.AdvertisedWindowSize() {
-			// drop packet, bye byte
-			logging.Logger.Printf("[RecvWindow] Dropping out-of-window/too-big packet, seqNum %d\n", seqNum)
-			return w.nextByteExpected.Prev().Value.(TcpByte).SeqNum + 1
-		}
+
+	if seqNum != w.nextSeqNumExpected {
+		logging.Logger.Printf("[WARN] Received out-of-order packet, received %d, expected %d\n", seqNum, w.nextSeqNumExpected)
 	}
 
-	var moves int
-	//count := 0
-	if w.nextByteExpected.Prev().Value == nil {
-		moves = 0
-		//fmt.Println("times:%d", count)
-	} else {
-		moves = seqNum - w.nextByteExpected.Prev().Value.(TcpByte).SeqNum
-		logging.Logger.Printf("[DEBUG][RecvWindow] moves: %d seqNum: %d nextByteExpected prev: %d\n", moves, seqNum, w.nextByteExpected.Prev().Value.(TcpByte).SeqNum)
+	if seqNum < w.nextSeqNumExpected || seqNum > w.nextSeqNumExpected+w.AdvertisedWindowSize() || len(payload) > w.AdvertisedWindowSize() {
+		// drop packet, bye byte
+		logging.Logger.Printf("[RecvWindow] Dropping out-of-window/too-big packet, seqNum %d, expected seqNum is %d\n", seqNum, w.nextSeqNumExpected)
+		return w.nextSeqNumExpected
 	}
+
+	// find the appropriate spot of the put the received block of data
+	moves := seqNum - w.nextSeqNumExpected
+	if moves < 0 {
+		logging.Logger.Printf("[FATAL] moves is calculated as %d, r %d e %d\n", moves, seqNum, w.nextSeqNumExpected)
+	}
+
 	//count++
 	ringPointer := w.nextByteExpected
-	ringPointer.Move(moves)
+	ringPointer = ringPointer.Move(moves)
+
+	var expectedAfter string
+	if w.nextByteExpected.Prev().Value == nil {
+		expectedAfter = "nil pointer"
+	} else {
+		expectedAfter = strconv.Itoa(w.nextByteExpected.Prev().Value.(TcpByte).SeqNum + 1)
+	}
+	logging.Logger.Printf("[DEBUG] Received SeqNum %d, nextExpected at %s, moves calculated as %d, distance form lastRead to nextExpected is %d",
+		seqNum, expectedAfter, moves, Distance(w.lastByteRead, w.nextByteExpected))
 
 	// write payload into ring
 	logging.Logger.Printf("[DEBUG][RecvWindow] Writing received payload into buffer, seqNum %d payload length: %d\n", seqNum, len(payload))
 	for i := 0; i < len(payload); i++ {
+
 		ringPointer.Value = TcpByte{seqNum + i, payload[i]}
+		if i == 0 {
+			logging.Logger.Printf("First byte recieved is written at %d, nextExpectedSeqNum was %d\n", ringPointer.Value.(TcpByte).SeqNum, w.nextSeqNumExpected)
+		}
 		//logging.Logger.Printf("[DEBUG][RecvWindow] Recv window position %d, data %s\n", ringPointer.Value.(TcpByte).SeqNum, string(ringPointer.Value.(TcpByte).B))
 		ringPointer = ringPointer.Next()
 	}
+	w.totalBytesRecevied += len(payload)
 
 	// udpate last byte received pointers
 	w.lastByteReceived = ringPointer.Prev()
 
-	// update next expected pointer
-	for {
-		if w.nextByteExpected.Value == nil {
-			break
-		} else {
-			w.nextByteExpected = w.nextByteExpected.Next()
+	if seqNum != w.nextSeqNumExpected {
+		// do not move!
+	} else {
+		for {
+			if w.nextByteExpected.Value == nil {
+				break
+			} else {
+				if w.nextByteExpected.Value != nil && w.nextByteExpected.Next().Value != nil {
+					if w.nextByteExpected.Value.(TcpByte).SeqNum+1 != w.nextByteExpected.Next().Value.(TcpByte).SeqNum {
+						logging.Logger.Printf("[FATAL] pointer seqnum is %d, next seqnum is %d\n", w.nextByteExpected.Value.(TcpByte).SeqNum, w.nextByteExpected.Next().Value.(TcpByte).SeqNum)
+					}
+				}
+				w.nextByteExpected = w.nextByteExpected.Next()
+				w.nextSeqNumExpected += 1
+			}
 		}
 	}
-	logging.Logger.Printf("[DEBUG][RecvWindow] Recv window nextByteExpected pointer is right after %d\n", w.nextByteExpected.Prev().Value.(TcpByte).SeqNum)
+
+	if w.nextByteExpected.Prev().Value == nil {
+		expectedAfter = "nil pointer"
+	} else {
+		expectedAfter = strconv.Itoa(w.nextByteExpected.Prev().Value.(TcpByte).SeqNum + 1)
+	}
+	logging.Logger.Printf("[DEBUG][RecvWindow] Recv window nextByteExpected pointer is at %s, nextExpectedSeqNum is %d\n", expectedAfter, w.nextSeqNumExpected)
 
 	// return next expected ACK
-	return w.nextByteExpected.Prev().Value.(TcpByte).SeqNum + 1
+	return w.nextSeqNumExpected
 }
 
 func (w *ReceiverSlidingWindow) Read(bytes int) ([]byte, int) {

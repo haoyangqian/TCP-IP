@@ -67,7 +67,7 @@ func (socket *TcpSocket) SendCtrl(Ctrl int, seqnum int, acknum int, laddr model.
 	socket.HandshakeAcknum = acknum
 	tcpheader := MakeTcpHeader(lport, rport, seqnum, acknum, Ctrl, socket.recvWindow.AdvertisedWindowSize())
 	tcppacket := MakeTcpPacket([]byte{}, tcpheader)
-	logging.Logger.Printf("[TcpSocket] send ctrl()--ctrl:%b,window size: %d seqnum: %d acknum: %d\n", tcpheader.Ctrl, tcpheader.Window, tcpheader.SeqNum, tcpheader.AckNum)
+	logging.Logger.Printf("[TcpSocket] send ctrl()--ctrl:%b,window size: %d seqnum: %d acknum: %d\n\n", tcpheader.Ctrl, tcpheader.Window, tcpheader.SeqNum, tcpheader.AckNum)
 	//set tcp checksum
 	data := tcppacket.ConvertToBuffer()
 	tcppacket.Tcpheader.Checksum = int(Csum(data, laddr.Vip2Int(), raddr.Vip2Int()))
@@ -150,6 +150,12 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 	// recv
 	tcppacket := ConvertToTcpPacket(packet.Payload)
 
+	if socket.recvWindow.bufferSize == 0 {
+		socket.recvWindow = MakeReceiverSlidingWindow(MAX_WINDOWSIZE)
+		logging.Logger.Printf("[TcpSocket] %d Initilized Recv Window, ring Size: %d, advertisedWindowSize: %d\n", socket.Fd, socket.recvWindow.bufferSize, socket.recvWindow.AdvertisedWindowSize())
+	}
+
+	//fmt.Println(tcppacket.TcpPacketString())
 	if socket.StateMachine.CurrentState() != TCP_ESTAB {
 		if tcppacket.Tcpheader.HasFlag(ACK) {
 			if tcppacket.Tcpheader.AckNum != socket.SeqNum+1 {
@@ -178,10 +184,21 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 			//logging.Logger.Printf("[TcpSocket] update MaxAckNumRecved -- %d\n", socket.MaxAckNumRecved)
 		}
 	}
+
+	// if we are still receiving, we should check the seqnum first before we transit into a new state
+	if socket.StateMachine.CurrentState() == TCP_ESTAB || socket.StateMachine.CurrentState().IsActiveClose {
+		if tcppacket.Tcpheader.SeqNum != socket.recvWindow.nextSeqNumExpected {
+			logging.Logger.Printf("Transition arrived before all data was received, seqNum %d, expected seqNum %d", tcppacket.Tcpheader.SeqNum, socket.recvWindow.nextSeqNumExpected)
+			socket.SendCtrl(ACK, socket.lastSentSeq, socket.recvWindow.nextSeqNumExpected, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
+			return
+		}
+	}
+
+	logging.Logger.Printf("[TcpSocket] recv ctrl()--ctrl:%b,laddr:%s,lport,%d,raddr:%s,rport:%d, window: %d, payload size: %d, currentState %s\n", tcppacket.Tcpheader.Ctrl, packet.Ipheader.Dst, tcppacket.Tcpheader.Destination, packet.Ipheader.Src, tcppacket.Tcpheader.Source, tcppacket.Tcpheader.Window, len(tcppacket.Payload), socket.StateMachine.CurrentState().Name)
 	event := MakeTcpTransitionEvent(tcppacket.Tcpheader)
 	// state will change, execute statemachine response
 	if socket.StateMachine.HasTransition(event) {
-		//fmt.Printf("transition : %+v\n", event)
+		logging.Logger.Printf("transition : %+v\n", event)
 		resp, _ := socket.StateMachine.GetResponse(event)
 		//fmt.Printf("resp: %+v\n", resp)
 		if !resp.ShouldDoNothing() {
@@ -209,13 +226,20 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 			}
 			go socket.Send()
 		}
+
+		socket.StateMachine.Transit(event)
+		if socket.StateMachine.CurrentState() == TCP_ESTAB {
+			socket.recvWindow.SetNextExpectedSeqNum(tcppacket.Tcpheader.SeqNum)
+		}
 		return
 	}
 
 	if len(tcppacket.Payload) > 0 && (socket.StateMachine.CurrentState() == TCP_ESTAB || socket.StateMachine.CurrentState().IsActiveClose) {
 		logging.Logger.Printf("[TcpSocket] %d receiving data packet", socket.Fd)
 		ack := socket.recvWindow.Receive(tcppacket.Tcpheader.SeqNum, tcppacket.Payload)
-		socket.SendCtrl(ACK, 0, ack, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
+		if ack > 0 {
+			socket.SendCtrl(ACK, tcppacket.Tcpheader.AckNum, ack, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
+		}
 	}
 }
 
@@ -240,30 +264,11 @@ func (socket *TcpSocket) AddToBuffer(buf []byte, nbyte int) int {
 }
 
 /*
-*   read bytes from buffer, support block and non-block
+*   read bytes from buffer
  */
-func (socket *TcpSocket) ReadFromBuffer(bytes int, block bool) []byte {
-	// blocking
-	if block {
-		bytesRead := 0
-		buffer := make([]byte, bytes)
-
-		for {
-			if bytesRead == bytes {
-				break
-			}
-
-			readBuffer, read := socket.recvWindow.Read(bytes - bytesRead)
-			buffer = append(buffer, readBuffer...)
-			bytesRead += read
-		}
-		return buffer
-
-		// non-blocking
-	} else {
-		buffer, _ := socket.recvWindow.Read(bytes)
-		return buffer
-	}
+func (socket *TcpSocket) ReadFromBuffer(bytes int) ([]byte, int) {
+	buffer, size := socket.recvWindow.Read(bytes)
+	return buffer, size
 }
 
 func (socket *TcpSocket) RepeatPreviousStateAction() {

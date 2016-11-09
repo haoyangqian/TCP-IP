@@ -2,6 +2,8 @@ package network
 
 import "model"
 import "fmt"
+import "logging"
+import "transport"
 
 type NetworkAccessor struct {
 	routingTable model.RoutingTable
@@ -108,6 +110,13 @@ func (accessor *NetworkAccessor) ForwardPacket(packet model.IpPacket, chToForwar
 
 	if !entry.Reachable() {
 		return
+	}
+
+	if packet.Ipheader.Protocol == 6 {
+		tcppacket := transport.ConvertToTcpPacket(packet.Payload)
+		logging.Logger.Printf("[IpHandler][TcpPacket] Seqnum: %d, Acknum: %d, from %+v to %+v, window size: %d, payload size: %d\n",
+			tcppacket.Tcpheader.SeqNum, tcppacket.Tcpheader.AckNum, tcppacket.Tcpheader.Source, tcppacket.Tcpheader.Destination,
+			tcppacket.Tcpheader.Window, len(tcppacket.Payload))
 	}
 
 	packet.Ipheader.TTL -= 1

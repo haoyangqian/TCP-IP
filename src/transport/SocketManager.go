@@ -270,9 +270,8 @@ func (manager *SocketManager) V_accept(listenfd int, addr *model.VirtualIp, port
 
 func (manager *SocketManager) V_read(socketFd int, nbyte int) ([]byte, int) {
 	socket, _ := manager.GetSocketByFd(socketFd)
-	buff := socket.ReadFromBuffer(nbyte, false)
-	buffSize := len(buff)
-	fmt.Printf("v_read() on %d bytes returned %d; contents of buffer: %s\n", nbyte, buffSize, string(buff))
+	buff, buffSize := socket.ReadFromBuffer(nbyte)
+
 	return buff, buffSize
 }
 

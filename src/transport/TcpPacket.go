@@ -16,7 +16,7 @@ func MakeTcpPacket(message []byte, h TCPHeader) TcpPacket {
 }
 
 func (Tcp *TcpPacket) PrintTcpPacketString() {
-	logging.Logger.Printf("[IpHandler][TcpPacket] PrintTcpPacketString tcpheader:%+v\n \n", Tcp.Tcpheader)
+	logging.Logger.Printf("[IpHandler][TcpPacket] PrintTcpPacketString tcpheader:%+v, payload: %d\n", Tcp.Tcpheader, len(Tcp.Payload))
 }
 
 func (Tcp *TcpPacket) ConvertToBuffer() []byte {

@@ -359,11 +359,35 @@ func main() {
 
 			socketFd, _ := strconv.Atoi(tokens[1])
 			nBytes, _ := strconv.Atoi(tokens[2])
+			shouldBlockStr := tokens[3]
+			var shouldBlock bool
+			if strings.ToLower(shouldBlockStr) == "y" {
+				shouldBlock = true
+			} else if strings.ToLower(shouldBlockStr) == "n" {
+				shouldBlock = false
+			} else {
+				fmt.Println("invalid args: recv [socket] [numbytes] [y/n] ")
+				break
+			}
 
-			socketmanager.V_read(socketFd, nBytes)
+			bytesRead := 0
+			result := make([]byte, 0)
+			if shouldBlock {
+				for {
+					buff, size := socketmanager.V_read(socketFd, nBytes-bytesRead)
+					bytesRead += size
+					result = append(result, buff...)
 
-			//fmt.Printf("%d bytes read from V_read\n", size)
-			//fmt.Println(string(buff))
+					if bytesRead == nBytes {
+						break
+					}
+				}
+			} else {
+				result, bytesRead = socketmanager.V_read(socketFd, nBytes)
+			}
+
+			fmt.Printf("%d bytes read from V_read\n", bytesRead)
+			fmt.Println(string(result))
 		case "recvfile":
 			if len(tokens) != 3 {
 				fmt.Println("invalid args: recvfile [filename] [port] ")
@@ -380,6 +404,9 @@ func main() {
 			socketfd, _ := strconv.Atoi(tokens[1])
 			socket, _ := socketmanager.GetSocketByFd(socketfd)
 			fmt.Printf("effective sending window:%d receiver advertise window:%d\n", socket.GetSendingWindow().EffectiveWindowSize(), socket.GetReceiverWindow().AdvertisedWindowSize())
+		case "rr":
+			filereceiver := transport.MakeFileReceiver(socketmanager, 9999, "rr")
+			go filereceiver.Recv()
 		case "interfaces":
 			PrintInterfaces(interfaceTable)
 		case "di":

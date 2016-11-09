@@ -143,11 +143,14 @@ func makeTcpFsmBuilder() transport.TcpStateMachineBuilder {
 	builder.RegisterTransition(transport.TCP_ESTAB, transport.TCP_CLOSE, transport.TCP_RESP_SEND_FIN, transport.TCP_FIN_WAIT_1)
 	//doubt
 	builder.RegisterTransition(transport.TCP_ESTAB, transport.TCP_RECV_FIN_ACK, transport.TCP_RESP_SEND_ACK, transport.TCP_CLOSE_WAIT)
+	builder.RegisterTransition(transport.TCP_ESTAB, transport.TCP_RECV_FIN, transport.TCP_RESP_SEND_ACK, transport.TCP_CLOSE_WAIT)
 
 	builder.RegisterTransition(transport.TCP_FIN_WAIT_1, transport.TCP_RECV_ACK, transport.TCP_RESP_DO_NOTHING, transport.TCP_FIN_WAIT_2)
 	builder.RegisterTransition(transport.TCP_FIN_WAIT_1, transport.TCP_RECV_FIN, transport.TCP_RESP_SEND_ACK, transport.TCP_CLOSING)
+	builder.RegisterTransition(transport.TCP_FIN_WAIT_1, transport.TCP_RECV_FIN_ACK, transport.TCP_RESP_SEND_ACK, transport.TCP_CLOSING)
 
 	builder.RegisterTransition(transport.TCP_FIN_WAIT_2, transport.TCP_RECV_FIN, transport.TCP_RESP_SEND_ACK, transport.TCP_TIME_WAIT)
+	builder.RegisterTransition(transport.TCP_FIN_WAIT_2, transport.TCP_RECV_FIN_ACK, transport.TCP_RESP_SEND_ACK, transport.TCP_TIME_WAIT)
 
 	builder.RegisterTransition(transport.TCP_CLOSING, transport.TCP_RECV_ACK, transport.TCP_RESP_DO_NOTHING, transport.TCP_TIME_WAIT)
 

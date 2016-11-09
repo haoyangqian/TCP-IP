@@ -23,6 +23,7 @@ func Distance(src *ring.Ring, dst *ring.Ring) int {
 	}
 	return count
 }
+
 func Ringtest() {
 	//coffee := []string{"1", "2", "3"}
 
