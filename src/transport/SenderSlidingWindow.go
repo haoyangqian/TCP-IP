@@ -76,7 +76,7 @@ func (w *SenderSlidingWindow) BytesToSent() int {
 		length = 0
 	} else {
 		length = Distance(w.lastByteSent, w.lastByteWritten)
-		logging.Logger.Printf("[SendWindow] Have Bytes to send: %d\n", length)
+		//logging.Logger.Printf("[SendWindow] Have Bytes to send: %d\n", length)
 	}
 	return length
 }
@@ -99,9 +99,14 @@ func (w *SenderSlidingWindow) Send() ([]byte, int) {
 		//logging.Logger.Printf("[SendWindow] EffectiveWindowSize == 0 \n")
 		return []byte{}, -2
 	}
+	logging.Logger.Printf("[DEBUG][SendWindow] Send() BytesToSent:%d , EffectiveWindowSize : %d", w.BytesToSent(), w.EffectiveWindowSize())
 	sendsize := w.EffectiveWindowSize()
 	if w.BytesToSent() < w.EffectiveWindowSize() {
 		sendsize = w.BytesToSent()
+	}
+	//can only send MAX_PAYLOAD at once in a tcppacket
+	if sendsize > MAX_PAYLOAD {
+		sendsize = MAX_PAYLOAD
 	}
 
 	//send bytes
@@ -114,7 +119,9 @@ func (w *SenderSlidingWindow) Send() ([]byte, int) {
 			w.lastByteSent = w.lastByteSent.Next()
 		}
 	}
-	logging.Logger.Printf("[SendWindow] Send() send buffer:%s\n", string(buffer))
+	if len(buffer) > 0 {
+		logging.Logger.Printf("[DEBUG][SendWindow] Send() length:%d buffer:%s \n", len(buffer), string(buffer))
+	}
 	return buffer, seqnum
 }
 
@@ -139,12 +146,12 @@ func (w *SenderSlidingWindow) Write(buff []byte, nbytes int) int {
 			logging.Logger.Printf("[DEBUG][SendWindow] Overwrite buffer seqnum:%d byte:%s\n", w.lastByteWritten.Next().Value.(TcpByte).SeqNum, w.lastByteWritten.Next().Value.(TcpByte).B)
 		} else {
 			w.lastByteWritten.Next().Value = TcpByte{w.Seqnum, buff[i]}
-			logging.Logger.Printf("[SendWindow] Write buffer:%s,seq:%d\n", string(w.lastByteWritten.Next().Value.(TcpByte).B), w.lastByteWritten.Next().Value.(TcpByte).SeqNum)
+			//logging.Logger.Printf("[SendWindow] Write buffer:%s,seq:%d\n", string(w.lastByteWritten.Next().Value.(TcpByte).B), w.lastByteWritten.Next().Value.(TcpByte).SeqNum)
 			w.Seqnum += 1
 			w.lastByteWritten = w.lastByteWritten.Next()
 		}
 	}
-
+	logging.Logger.Printf("[DEBUG][SendWindow] write length: %d distance: %d", writelength, w.BytesToSent())
 	return writelength
 }
 

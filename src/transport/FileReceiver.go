@@ -2,6 +2,7 @@ package transport
 
 import (
 	"fmt"
+	"logging"
 	"model"
 	"os"
 )
@@ -41,7 +42,7 @@ func (fr *FileReceiver) Recv() {
 			buff, size := fr.socketmanager.V_read(newFd, 1024)
 			if size != 0 {
 				fr.file.Write(buff)
-				fmt.Printf("[FileReceiver] read success! size : %d buffsize : %d\n", size, len(buff))
+				logging.Logger.Printf("[FileReceiver] read success! size : %d buffsize : %d\n", size, len(buff))
 			} else if newsocket.StateMachine.CurrentState() == TCP_CLOSE_WAIT {
 				break
 			}

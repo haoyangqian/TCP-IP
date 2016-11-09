@@ -337,6 +337,20 @@ func main() {
 				socketmanager.V_write(socketFd, []byte(payload), len(payload))
 
 			}
+		case "sendfile":
+			if len(tokens) != 4 {
+				fmt.Println("invalid args: sendfile [filename] [ip] [port] ")
+			}
+			filename := tokens[1]
+			dstIp := tokens[2]
+			dstPort, _ := strconv.Atoi(tokens[3])
+			dstPort = dstPort % 65535
+			filesender, err := transport.MakeFileSender(socketmanager, model.VirtualIp{dstIp}, dstPort, filename)
+			if err != nil {
+				fmt.Println(err)
+			} else {
+				go filesender.Send()
+			}
 		case "recv":
 			if len(tokens) != 4 {
 				fmt.Println("invalid args: recv [socket] [numbytes] [y/n] ")
@@ -354,12 +368,18 @@ func main() {
 			if len(tokens) != 3 {
 				fmt.Println("invalid args: recvfile [filename] [port] ")
 			}
-
 			filename := tokens[1]
 			port, _ := strconv.Atoi(tokens[2])
 			port = port % 65535
 			filereceiver := transport.MakeFileReceiver(socketmanager, port, filename)
 			go filereceiver.Recv()
+		case "window":
+			if len(tokens) != 2 || tokens[1] == "\n" {
+				fmt.Println("invalid args: window [sockets]")
+			}
+			socketfd, _ := strconv.Atoi(tokens[1])
+			socket, _ := socketmanager.GetSocketByFd(socketfd)
+			fmt.Printf("effective sending window:%d receiver advertise window:%d\n", socket.GetSendingWindow().EffectiveWindowSize(), socket.GetReceiverWindow().AdvertisedWindowSize())
 		case "interfaces":
 			PrintInterfaces(interfaceTable)
 		case "di":

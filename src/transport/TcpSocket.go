@@ -11,6 +11,7 @@ import (
 const (
 	MAX_WINDOWSIZE = 65535
 	MAX_WATINGTIME = 1000000000 // 1s
+	MAX_PAYLOAD    = 1024
 )
 
 type TcpSocket struct {
@@ -44,6 +45,14 @@ func MakeSocket(fd int, fsm TcpStateMachine, ch chan<- model.SendMessageRequest)
 		packetsQueue:    pq,
 		MaxAckNumRecved: -1,
 	}
+}
+
+func (socket *TcpSocket) GetSendingWindow() *SenderSlidingWindow {
+	return &socket.sendWindow
+}
+
+func (socket *TcpSocket) GetReceiverWindow() *ReceiverSlidingWindow {
+	return &socket.recvWindow
 }
 
 /*
@@ -103,16 +112,16 @@ func (socket *TcpSocket) Send() {
 		if socket.packetsQueue.Len() != 0 {
 			n := socket.packetsQueue.Len()
 			//check if the expected ACK < max ack, just drop it
-			logging.Logger.Printf("[TcpSocket] length : %d Heap top ExpectedAckNum:%d MaxAckNumRecved:%d ExpireTimeNanos:%d\n", n, socket.packetsQueue[n-1].ExpectedAckNum, socket.MaxAckNumRecved, socket.packetsQueue[n-1].ExpireTimeNanos)
+			//logging.Logger.Printf("[TcpSocket] length : %d Heap top ExpectedAckNum:%d MaxAckNumRecved:%d ExpireTimeNanos:%d\n", n, socket.packetsQueue[n-1].ExpectedAckNum, socket.MaxAckNumRecved, socket.packetsQueue[n-1].ExpireTimeNanos)
 			if socket.packetsQueue[n-1].ExpectedAckNum <= socket.MaxAckNumRecved {
 				heap.Pop(&socket.packetsQueue)
-				logging.Logger.Printf("[TcpSocket] Pop Sucess, length : %d", socket.packetsQueue.Len())
+				//logging.Logger.Printf("[TcpSocket] Pop Sucess, length : %d", socket.packetsQueue.Len())
 			} else {
 				//if timeout, retransmit
 				if socket.packetsQueue[n-1].ExpireTimeNanos+MAX_WATINGTIME < time.Now().UnixNano() {
 					tcppacket := socket.packetsQueue[n-1].Packet
 					socket.SendData(tcppacket.Tcpheader.SeqNum, tcppacket.Tcpheader.AckNum, tcppacket.Payload)
-					logging.Logger.Printf("[TcpSocket] Send() retransmition")
+					//logging.Logger.Printf("[TcpSocket] Send() retransmition")
 					//update the packet in the pq
 					socket.packetsQueue.update(socket.packetsQueue[n-1], time.Now().UnixNano())
 				}
@@ -121,7 +130,7 @@ func (socket *TcpSocket) Send() {
 		//if there are bytes should be sent
 		buffer, seqnum := socket.sendWindow.Send()
 		if seqnum > 0 && len(buffer) > 0 {
-			logging.Logger.Printf("[TcpSocket] Send() send buffer:%s len : %d seqnum:%d\n", string(buffer), len(buffer), seqnum)
+			//logging.Logger.Printf("[TcpSocket] Send() send buffer:%s len : %d seqnum:%d\n", string(buffer), len(buffer), seqnum)
 			tcppacket, _ := socket.SendData(seqnum, socket.HandshakeAcknum, buffer)
 			//put it into pq
 			packetinflight := PacketInFlight{
@@ -158,7 +167,7 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 			}
 			//update lastAckedBytes
 			length := tcppacket.Tcpheader.AckNum - socket.sendWindow.lastSeqnumAcked
-			logging.Logger.Printf("[TcpSocket] update length -- %d\n", length)
+			//logging.Logger.Printf("[TcpSocket] update length -- %d\n", length)
 			for i := 0; i < length; i++ {
 				if socket.sendWindow.lastByteAcked.Next().Value != nil {
 					socket.sendWindow.lastSeqnumAcked = socket.sendWindow.lastByteAcked.Next().Value.(TcpByte).SeqNum
@@ -166,7 +175,7 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 					socket.sendWindow.lastByteAcked = socket.sendWindow.lastByteAcked.Next()
 				}
 			}
-			logging.Logger.Printf("[TcpSocket] update MaxAckNumRecved -- %d\n", socket.MaxAckNumRecved)
+			//logging.Logger.Printf("[TcpSocket] update MaxAckNumRecved -- %d\n", socket.MaxAckNumRecved)
 		}
 	}
 	event := MakeTcpTransitionEvent(tcppacket.Tcpheader)
