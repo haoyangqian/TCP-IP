@@ -35,7 +35,7 @@ func MakeReceiverSlidingWindow(bufferSize int) ReceiverSlidingWindow {
 
 func (w *ReceiverSlidingWindow) AdvertisedWindowSize() int {
 	if w.lastByteReceived == w.lastByteRead {
-		return w.bufferSize
+		return MAX_WINDOWSIZE
 	} else {
 		return w.bufferSize - (Distance(w.lastByteRead, w.nextByteExpected.Prev()))
 	}

@@ -38,9 +38,8 @@ func (pq *PriorityQueue) Pop() interface{} {
 }
 
 // update modifies the priority and value of an Item in the queue.
-func (pq *PriorityQueue) update(item *PacketInFlight, time int64, hasAcked bool) {
+func (pq *PriorityQueue) update(item *PacketInFlight, time int64) {
 	item.ExpireTimeNanos = time
-	item.HasAcked = hasAcked
 	heap.Fix(pq, item.Index)
 }
 
@@ -52,19 +51,17 @@ func Heaptest() {
 	var item *PacketInFlight
 	item = &PacketInFlight{
 		ExpireTimeNanos: 1,
-		HasAcked:        false,
 	}
 	heap.Push(&pq, item)
 	//pq.update(item, 2, false)
 	item = &PacketInFlight{
 		ExpireTimeNanos: 2,
-		HasAcked:        false,
 	}
 	heap.Push(&pq, item)
 	// Take the items out; they arrive in decreasing priority order.
 	for pq.Len() > 0 {
 		item := heap.Pop(&pq).(*PacketInFlight)
-		fmt.Printf("ExpireTimeNanos:%d HasAcked:%t\n", item.ExpireTimeNanos, item.HasAcked)
+		fmt.Printf("ExpireTimeNanos:%d HasAcked:%t\n", item.ExpireTimeNanos)
 	}
 
 }

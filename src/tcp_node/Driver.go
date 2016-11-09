@@ -328,16 +328,14 @@ func main() {
 
 		case "send":
 			{
-				if len(tokens) != 4 {
-					fmt.Println("invalid args: send <dst_ip> <prot> <payload> ")
+				if len(tokens) != 3 {
+					fmt.Println("invalid args: send <socket> <data>")
 					break
 				}
-				dstIp := tokens[1]
-				prot, _ := strconv.Atoi(tokens[2])
-				h := transport.MakeTcpHeader(5555, 6666, 0, 0, 0, 10)
-				payload := transport.MakeTcpPacket([]byte(tokens[3]), h)
-				request := model.MakeSendMessageRequest(payload.ConvertToBuffer(), prot, model.VirtualIp{dstIp})
-				factory.MessageChannel() <- request
+				socketFd, _ := strconv.Atoi(tokens[1])
+				payload := tokens[2]
+				socketmanager.V_write(socketFd, []byte(payload), len(payload))
+
 			}
 		case "recv":
 			if len(tokens) != 4 {
@@ -348,9 +346,10 @@ func main() {
 			socketFd, _ := strconv.Atoi(tokens[1])
 			nBytes, _ := strconv.Atoi(tokens[2])
 
-			buff, size := socketmanager.V_read(socketFd, nBytes)
-			fmt.Printf("%d bytes read from V_read\n", size)
-			fmt.Println(string(buff))
+			socketmanager.V_read(socketFd, nBytes)
+
+			//fmt.Printf("%d bytes read from V_read\n", size)
+			//fmt.Println(string(buff))
 		case "recvfile":
 			if len(tokens) != 3 {
 				fmt.Println("invalid args: recvfile [filename] [port] ")

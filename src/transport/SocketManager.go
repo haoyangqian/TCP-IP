@@ -3,6 +3,7 @@ package transport
 import (
 	"errors"
 	"fmt"
+	"logging"
 	"math/rand"
 	"model"
 	"os"
@@ -271,17 +272,18 @@ func (manager *SocketManager) V_read(socketFd int, nbyte int) ([]byte, int) {
 	socket, _ := manager.GetSocketByFd(socketFd)
 	buff := socket.ReadFromBuffer(nbyte, false)
 	buffSize := len(buff)
-
+	fmt.Printf("v_read() on %d bytes returned %d; contents of buffer: %s\n", nbyte, buffSize, string(buff))
 	return buff, buffSize
 }
 
 func (manager *SocketManager) V_write(socketfd int, buf []byte, nbyte int) int {
 	//put data into buffer
 	//if full, blocking
-	//socket := manager.GetSocketByFd(socketfd)
-	//socket.AddToBuffer(buf, nbyte)
-
-	return 0
+	socket, _ := manager.GetSocketByFd(socketfd)
+	size := socket.AddToBuffer(buf, nbyte)
+	fmt.Printf("v_write() on %d bytes returned %d\n", nbyte, size)
+	logging.Logger.Printf("[SocketManager] V_write socketfd:%d write size :%d", socket.Fd, size)
+	return size
 }
 
 func (manager *SocketManager) V_shutdown(socket int, closeType int) int {
