@@ -114,9 +114,9 @@ func (accessor *NetworkAccessor) ForwardPacket(packet model.IpPacket, chToForwar
 
 	if packet.Ipheader.Protocol == 6 {
 		tcppacket := transport.ConvertToTcpPacket(packet.Payload)
-		logging.Logger.Printf("[IpHandler][TcpPacket] Seqnum: %d, Acknum: %d, from %+v to %+v, window size: %d, payload size: %d\n",
+		logging.Logger.Printf("[IpHandler][TcpPacket] Seqnum: %d, Acknum: %d, from %+v to %+v, window size: %d, payload size: %d, ctrlFlag: %b\n",
 			tcppacket.Tcpheader.SeqNum, tcppacket.Tcpheader.AckNum, tcppacket.Tcpheader.Source, tcppacket.Tcpheader.Destination,
-			tcppacket.Tcpheader.Window, len(tcppacket.Payload))
+			tcppacket.Tcpheader.Window, len(tcppacket.Payload), tcppacket.Tcpheader.Ctrl)
 	}
 
 	packet.Ipheader.TTL -= 1

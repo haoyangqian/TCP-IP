@@ -56,6 +56,8 @@ func (fs *FileSender) Send() {
 			}
 		}
 	}
+	//send fin
+	//	fs.socket.SendCtrl(FIN|ACK, seqnum, acknum, laddr, lport, raddr, rport)
 	fmt.Printf("sendfile on socket %d done\n", socketFd)
 	fmt.Printf("ENDING SENDFILE\n")
 	fs.CloseSender()

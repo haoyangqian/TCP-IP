@@ -50,6 +50,7 @@ func MakeSocketManager(interfaces map[model.VirtualIp]*model.NodeInterface, fsmB
 	for _, v := range interfaces {
 		interfacetable[v.Src] = true
 	}
+	rand.Seed(time.Now().UnixNano())
 	return SocketManager{socketmapfd, socketmapaddr, interfacetable, fsmBuilder, -1, 1024, sendToIpCh}
 }
 

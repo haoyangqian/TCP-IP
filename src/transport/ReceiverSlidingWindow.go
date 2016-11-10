@@ -126,6 +126,10 @@ func (w *ReceiverSlidingWindow) Receive(seqNum int, payload []byte) int {
 }
 
 func (w *ReceiverSlidingWindow) Read(bytes int) ([]byte, int) {
+	if w.totalBytesRecevied == 0 {
+		return []byte{}, 0
+	}
+
 	w.Lock.RLock()
 	defer w.Lock.RUnlock()
 	readableBytes := Distance(w.lastByteRead, w.nextByteExpected.Prev())
