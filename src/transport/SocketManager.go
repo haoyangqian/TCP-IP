@@ -11,10 +11,6 @@ import (
 	"time"
 )
 
-var (
-	TCP_HANDSHAKE_MAX_RETRY int = 3
-)
-
 type SocketManager struct {
 	socketMapByFd   map[int]*SocketRunner
 	socketMapByAddr map[SocketAddr]*SocketRunner
@@ -221,7 +217,7 @@ func (manager *SocketManager) V_connect(socketfd int, addr model.VirtualIp, port
 
 	go runner.Run()
 
-	startTimeMillis := int(time.Now().UnixNano() / int64(time.Millisecond))
+	startTimeMillis := time.Now().UnixNano()
 	for {
 		if socket.StateMachine.CurrentState() == TCP_ESTAB {
 			fmt.Println("v_connect() return 0")
@@ -229,7 +225,8 @@ func (manager *SocketManager) V_connect(socketfd int, addr model.VirtualIp, port
 		}
 
 		// if current time is ahead of start time + 3 timeouts + a small jitter, consider the connection timed out
-		if int(time.Now().UnixNano()/int64(time.Millisecond)) > (startTimeMillis + TCP_STATE_DEFAULT_TIMEOUT_MILLIS*TCP_MAX_RETRY_COUNT + 100) {
+		if time.Now().UnixNano() > (startTimeMillis + TCP_STATE_DEFAULT_TIMEOUT_NANOS*int64(TCP_MAX_RETRY_COUNT) + int64(100000000)) {
+			fmt.Println("v_connect() error: timed out")
 			return -1, errors.New("v_connect() error: timed out")
 		}
 	}
@@ -281,7 +278,7 @@ func (manager *SocketManager) V_write(socketfd int, buf []byte, nbyte int) int {
 	//if full, blocking
 	socket, _ := manager.GetSocketByFd(socketfd)
 	size := socket.AddToBuffer(buf, nbyte)
-	fmt.Printf("v_write() on %d bytes returned %d\n", nbyte, size)
+	fmt.Printf("v_write() on %d bytes returned %d\n", nbyte, nbyte)
 	logging.Logger.Printf("[SocketManager] V_write socketfd:%d write size :%d", socket.Fd, size)
 	return size
 }

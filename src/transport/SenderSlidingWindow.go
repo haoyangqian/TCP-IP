@@ -2,6 +2,7 @@ package transport
 
 import (
 	"container/ring"
+	//"fmt"
 	"logging"
 	"sync"
 )
@@ -17,8 +18,11 @@ type SenderSlidingWindow struct {
 	lastByteAcked            *ring.Ring
 	lastByteSent             *ring.Ring
 	lastByteWritten          *ring.Ring
+	BytesToSend              int
+	BytesInFlight            int
 	Seqnum                   int
 	lastSeqnumAcked          int
+	returnSeqNum             int
 	buffer                   *ring.Ring
 	bufferSize               int
 	lastAdvertisedWindowSize int
@@ -35,8 +39,11 @@ func MakeSenderSlidingWindow(bufferSize int, seq int) SenderSlidingWindow {
 		lastByteAcked:            lastByteAcked,
 		lastByteSent:             lastByteSent,
 		lastByteWritten:          lastByteWritten,
+		BytesToSend:              0,
+		BytesInFlight:            0,
 		Seqnum:                   seq,
 		lastSeqnumAcked:          seq,
+		returnSeqNum:             seq,
 		buffer:                   ring,
 		bufferSize:               bufferSize,
 		lastAdvertisedWindowSize: 65535,
@@ -49,37 +56,38 @@ func MakeSenderSlidingWindow(bufferSize int, seq int) SenderSlidingWindow {
  */
 func (w *SenderSlidingWindow) EffectiveWindowSize() int {
 	//effective window size = lastAdvertisedWindowSize - len(bytes in flight)
-	return w.lastAdvertisedWindowSize - Distance(w.lastByteSent, w.lastByteAcked)
+	return w.lastAdvertisedWindowSize - w.BytesInFlight
 }
 
 /*
 *   return the AvailableWriteSpace
  */
 func (w *SenderSlidingWindow) AvailableWriteSpace() int {
-	var space int
-	//the whole buffer
-	if w.lastByteAcked == w.lastByteWritten {
-		space = w.bufferSize
-	} else {
-		space = Distance(w.lastByteWritten, w.lastByteAcked)
-	}
-	return space
+	//	var space int
+	//	//the whole buffer
+	//	if w.lastByteAcked == w.lastByteWritten {
+	//		space = w.bufferSize
+	//	} else {
+	//		space = Distance(w.lastByteWritten, w.lastByteAcked)
+	//	}
+	return w.bufferSize - w.BytesToSend
 }
 
 /*
 *   return the BytesToSent
  */
-func (w *SenderSlidingWindow) BytesToSent() int {
-	var length int
-	//the whole buffer
-	if w.lastByteWritten == w.lastByteSent {
-		length = 0
-	} else {
-		length = Distance(w.lastByteSent, w.lastByteWritten)
-		//logging.Logger.Printf("[SendWindow] Have Bytes to send: %d\n", length)
-	}
-	return length
-}
+//func (w *SenderSlidingWindow) BytesToSent() int {
+//	var length int
+//	//the whole buffer
+//	if w.lastByteWritten == w.lastByteSent{
+//	    if w.la
+//		length = 0
+//	} else {
+//		length = Distance(w.lastByteSent, w.lastByteWritten)
+//		//logging.Logger.Printf("[SendWindow] Have Bytes to send: %d\n", length)
+//	}
+//	return length
+//}
 
 /*
 *     send bytes to the receiver
@@ -89,7 +97,7 @@ func (w *SenderSlidingWindow) Send() ([]byte, int) {
 	w.Lock.RLock()
 	defer w.Lock.RUnlock()
 	//check the length of bytes should be sent
-	if w.BytesToSent() == 0 {
+	if w.BytesToSend == 0 {
 		//logging.Logger.Printf("[SendWindow] No Bytes to send\n")
 		return []byte{}, -1
 	}
@@ -99,10 +107,10 @@ func (w *SenderSlidingWindow) Send() ([]byte, int) {
 		//logging.Logger.Printf("[SendWindow] EffectiveWindowSize == 0 \n")
 		return []byte{}, -2
 	}
-	logging.Logger.Printf("[DEBUG][SendWindow] Send() BytesToSent:%d , EffectiveWindowSize : %d", w.BytesToSent(), w.EffectiveWindowSize())
+	//logging.Logger.Printf("[DEBUG][SendWindow] Send() BytesToSent:%d , EffectiveWindowSize : %d", w.BytesToSend, w.EffectiveWindowSize())
 	sendsize := w.EffectiveWindowSize()
-	if w.BytesToSent() < w.EffectiveWindowSize() {
-		sendsize = w.BytesToSent()
+	if w.BytesToSend < w.EffectiveWindowSize() {
+		sendsize = w.BytesToSend
 	}
 	//can only send MAX_PAYLOAD at once in a tcppacket
 	if sendsize > MAX_PAYLOAD {
@@ -110,8 +118,10 @@ func (w *SenderSlidingWindow) Send() ([]byte, int) {
 	}
 
 	//send bytes
+	logging.Logger.Printf("sendsize:%d\n", sendsize)
 	buffer := make([]byte, sendsize)
-	seqnum := w.lastByteSent.Next().Value.(TcpByte).SeqNum
+
+	returnseqnum := w.returnSeqNum
 	for i := 0; i < sendsize; i++ {
 		if w.lastByteSent.Next().Value != nil {
 			buffer[i] = w.lastByteSent.Next().Value.(TcpByte).B
@@ -122,7 +132,10 @@ func (w *SenderSlidingWindow) Send() ([]byte, int) {
 	if len(buffer) > 0 {
 		logging.Logger.Printf("[DEBUG][SendWindow] Send() length:%d buffer:%s \n", len(buffer), string(buffer))
 	}
-	return buffer, seqnum
+	w.BytesToSend -= len(buffer)
+	logging.Logger.Printf("[DEBUG][SendWindow] Send() BytesToSend:%d\n", w.BytesToSend)
+	w.returnSeqNum += sendsize
+	return buffer, returnseqnum
 }
 
 /*
@@ -140,6 +153,9 @@ func (w *SenderSlidingWindow) Write(buff []byte, nbytes int) int {
 		writelength = w.AvailableWriteSpace()
 	}
 
+	if writelength > len(buff) {
+		//logging.Logger.Printf("[DEBUG][SendWindow] writelength:%d lenofbuff:%d\n", writelength, len(buff))
+	}
 	//write bytes into buffer starting from lastbyteswritten.next()
 	for i := 0; i < writelength; i++ {
 		if w.lastByteWritten.Next().Value != nil {
@@ -148,10 +164,11 @@ func (w *SenderSlidingWindow) Write(buff []byte, nbytes int) int {
 			w.lastByteWritten.Next().Value = TcpByte{w.Seqnum, buff[i]}
 			//logging.Logger.Printf("[SendWindow] Write buffer:%s,seq:%d\n", string(w.lastByteWritten.Next().Value.(TcpByte).B), w.lastByteWritten.Next().Value.(TcpByte).SeqNum)
 			w.Seqnum += 1
+			w.BytesToSend += 1
 			w.lastByteWritten = w.lastByteWritten.Next()
 		}
 	}
-	logging.Logger.Printf("[DEBUG][SendWindow] write length: %d distance: %d", writelength, w.BytesToSent())
+	//logging.Logger.Printf("[DEBUG][SendWindow] write length: %d distance: %d", writelength, w.BytesToSend)
 	return writelength
 }
 

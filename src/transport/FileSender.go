@@ -40,9 +40,11 @@ func (fs *FileSender) Send() {
 	if err != nil {
 		fmt.Printf("[MakefileSender] Connect fail")
 	}
-	buf := make([]byte, 512)
+
 	for {
+		//passive_close !!!!!!
 		if fs.socket.StateMachine.CurrentState() == TCP_ESTAB && fs.socket.sendWindow.bufferSize != 0 {
+			buf := make([]byte, 1024)
 			n, err := fs.file.Read(buf)
 			if err != nil && err != io.EOF {
 				fmt.Printf("[FileSender] read from file fail!")

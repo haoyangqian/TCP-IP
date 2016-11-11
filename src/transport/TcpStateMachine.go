@@ -10,9 +10,9 @@ import (
  * Constants
  */
 var (
-	TCP_STATE_DEFAULT_TIMEOUT_MILLIS = 2500
-	TCP_MSL_MILLIS                   = 60 * 1000
-	TCP_MAX_RETRY_COUNT              = 3
+	TCP_STATE_DEFAULT_TIMEOUT_NANOS = int64(1000000000) //1S
+	TCP_MSL_MILLIS                  = int64(60 * 1000)
+	TCP_MAX_RETRY_COUNT             = 100 //3
 
 	// EVENTS
 	TCP_ACTIVE_OPEN  TcpTransitionEvent = TcpTransitionEvent{ActiveOpen: true}
@@ -36,22 +36,22 @@ var (
 
 	// STATES
 	// establish connection
-	TCP_INITIAL_CLOSED TcpState = TcpState{Name: "CLOSED", StateTimeoutMillis: 0}
-	TCP_LISTEN         TcpState = TcpState{Name: "LISTEN", StateTimeoutMillis: 0}
-	TCP_SYN_RCVD       TcpState = TcpState{Name: "SYN_RCVD", StateTimeoutMillis: TCP_STATE_DEFAULT_TIMEOUT_MILLIS}
-	TCP_SYN_SENT       TcpState = TcpState{Name: "SYN_SENT", StateTimeoutMillis: TCP_STATE_DEFAULT_TIMEOUT_MILLIS}
-	TCP_ESTAB          TcpState = TcpState{Name: "ESTAB", StateTimeoutMillis: 0}
+	TCP_INITIAL_CLOSED TcpState = TcpState{Name: "CLOSED", StateTimeoutNanos: int64(0)}
+	TCP_LISTEN         TcpState = TcpState{Name: "LISTEN", StateTimeoutNanos: int64(0)}
+	TCP_SYN_RCVD       TcpState = TcpState{Name: "SYN_RCVD", StateTimeoutNanos: TCP_STATE_DEFAULT_TIMEOUT_NANOS}
+	TCP_SYN_SENT       TcpState = TcpState{Name: "SYN_SENT", StateTimeoutNanos: TCP_STATE_DEFAULT_TIMEOUT_NANOS}
+	TCP_ESTAB          TcpState = TcpState{Name: "ESTAB", StateTimeoutNanos: int64(0)}
 
 	// active close
-	TCP_FIN_WAIT_1 TcpState = TcpState{Name: "FIN_WAIT_1", IsActiveClose: true, StateTimeoutMillis: TCP_STATE_DEFAULT_TIMEOUT_MILLIS}
-	TCP_FIN_WAIT_2 TcpState = TcpState{Name: "FIN_WAIT_2", IsActiveClose: true, StateTimeoutMillis: TCP_STATE_DEFAULT_TIMEOUT_MILLIS}
-	TCP_CLOSING    TcpState = TcpState{Name: "CLOSING", IsActiveClose: true, StateTimeoutMillis: TCP_STATE_DEFAULT_TIMEOUT_MILLIS}
-	TCP_TIME_WAIT  TcpState = TcpState{Name: "TIME_WAIT", IsActiveClose: true, StateTimeoutMillis: TCP_MSL_MILLIS * 2}
+	TCP_FIN_WAIT_1 TcpState = TcpState{Name: "FIN_WAIT_1", IsActiveClose: true, StateTimeoutNanos: TCP_STATE_DEFAULT_TIMEOUT_NANOS}
+	TCP_FIN_WAIT_2 TcpState = TcpState{Name: "FIN_WAIT_2", IsActiveClose: true, StateTimeoutNanos: TCP_STATE_DEFAULT_TIMEOUT_NANOS}
+	TCP_CLOSING    TcpState = TcpState{Name: "CLOSING", IsActiveClose: true, StateTimeoutNanos: TCP_STATE_DEFAULT_TIMEOUT_NANOS}
+	TCP_TIME_WAIT  TcpState = TcpState{Name: "TIME_WAIT", IsActiveClose: true, StateTimeoutNanos: TCP_MSL_MILLIS * 2}
 
 	// passive close
-	TCP_CLOSE_WAIT   TcpState = TcpState{Name: "CLOSE_WAIT", IsPassiveClose: true, StateTimeoutMillis: 0}
-	TCP_LAST_ACK     TcpState = TcpState{Name: "LAST_ACK", IsPassiveClose: true, StateTimeoutMillis: TCP_STATE_DEFAULT_TIMEOUT_MILLIS}
-	TCP_FINAL_CLOSED TcpState = TcpState{Name: "CLOSED", IsPassiveClose: true, StateTimeoutMillis: 0}
+	TCP_CLOSE_WAIT   TcpState = TcpState{Name: "CLOSE_WAIT", IsPassiveClose: true, StateTimeoutNanos: int64(0)}
+	TCP_LAST_ACK     TcpState = TcpState{Name: "LAST_ACK", IsPassiveClose: true, StateTimeoutNanos: TCP_STATE_DEFAULT_TIMEOUT_NANOS}
+	TCP_FINAL_CLOSED TcpState = TcpState{Name: "CLOSED", IsPassiveClose: true, StateTimeoutNanos: int64(0)}
 )
 
 type TcpTransitionEvent struct {
@@ -111,15 +111,15 @@ func (r *TcpTransitionResponse) GetCtrlFlags() int {
 }
 
 type TcpState struct {
-	Name               string
-	IsActiveClose      bool
-	IsPassiveClose     bool
-	StateTimeoutMillis int
-	CloseOnTimeout     bool
+	Name              string
+	IsActiveClose     bool
+	IsPassiveClose    bool
+	StateTimeoutNanos int64
+	CloseOnTimeout    bool
 }
 
 func (state TcpState) CanTimeout() bool {
-	return state.StateTimeoutMillis > 0
+	return state.StateTimeoutNanos > int64(0)
 }
 
 type TcpTransition struct {
@@ -139,7 +139,7 @@ type TcpStateMachine struct {
 }
 
 func MakeTcpStateMachine(fd int, initialState TcpState, states map[TcpTransition]TcpState, responses map[TcpTransition]TcpTransitionResponse) TcpStateMachine {
-	emptyTimer := time.NewTimer(time.Duration(TCP_STATE_DEFAULT_TIMEOUT_MILLIS) * time.Millisecond)
+	emptyTimer := time.NewTimer(time.Duration(TCP_STATE_DEFAULT_TIMEOUT_NANOS) * time.Nanosecond)
 	if !emptyTimer.Stop() {
 		emptyTimer = time.NewTimer(time.Duration(1 * time.Hour))
 	}
@@ -171,7 +171,7 @@ func (m *TcpStateMachine) TimerChannel() <-chan time.Time {
 }
 
 func (m *TcpStateMachine) ResetStateTimer() {
-	m.stateTimer = time.NewTimer(time.Duration(m.CurrentState().StateTimeoutMillis) * time.Millisecond)
+	m.stateTimer = time.NewTimer(time.Duration(m.CurrentState().StateTimeoutNanos) * time.Nanosecond)
 }
 
 func (m *TcpStateMachine) HasTransition(event TcpTransitionEvent) bool {
@@ -208,7 +208,7 @@ func (m *TcpStateMachine) Transit(event TcpTransitionEvent) error {
 	m.retryCount = 0
 
 	if m.CurrentState().CanTimeout() {
-		m.stateTimer = time.NewTimer(time.Duration(m.CurrentState().StateTimeoutMillis) * time.Millisecond)
+		m.stateTimer = time.NewTimer(time.Duration(m.CurrentState().StateTimeoutNanos) * time.Nanosecond)
 	}
 
 	logging.Logger.Println("[TcpStateMachine]", m.fd, "has transited into state", m.CurrentState().Name)
