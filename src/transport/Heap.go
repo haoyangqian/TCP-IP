@@ -50,6 +50,10 @@ func Heaptest() {
 	pq := make(PriorityQueue, 0)
 	var item *PacketInFlight
 	item = &PacketInFlight{
+		ExpireTimeNanos: 3,
+	}
+	heap.Push(&pq, item)
+	item = &PacketInFlight{
 		ExpireTimeNanos: 1,
 	}
 	heap.Push(&pq, item)
@@ -60,8 +64,9 @@ func Heaptest() {
 	heap.Push(&pq, item)
 	// Take the items out; they arrive in decreasing priority order.
 	for pq.Len() > 0 {
+		fmt.Printf("top %d", pq[pq.Len()-1].ExpireTimeNanos)
 		item := heap.Pop(&pq).(*PacketInFlight)
-		fmt.Printf("ExpireTimeNanos:%d HasAcked:%t\n", item.ExpireTimeNanos)
+		fmt.Printf("ExpireTimeNanos:%d\n", item.ExpireTimeNanos)
 	}
 
 }

@@ -108,35 +108,38 @@ func (socket *TcpSocket) Send() {
 	for {
 		//retransmission
 
-		if socket.packetsQueue.Len() != 0 {
-			logging.Logger.Printf("socket packetsQueue has more than 1 packet\n")
-			n := socket.packetsQueue.Len()
-			//check if the expected ACK < max ack, just drop it
-			//logging.Logger.Printf("[TcpSocket] length : %d Heap top ExpectedAckNum:%d MaxAckNumRecved:%d ExpireTimeNanos:%d\n", n, socket.packetsQueue[n-1].ExpectedAckNum, socket.MaxAckNumRecved, socket.packetsQueue[n-1].ExpireTimeNanos)
-			if socket.packetsQueue[n-1].ExpectedAckNum <= socket.MaxAckNumRecved {
-				logging.Logger.Printf("discarding a packet in flight, a larger ACK has already been received\n")
-				heap.Pop(&socket.packetsQueue)
-				socket.sendWindow.BytesInFlight -= 1
-				//logging.Logger.Printf("[TcpSocket] Pop Sucess, length : %d", socket.packetsQueue.Len())
+		for socket.packetsQueue.Len() != 0 && socket.MaxAckNumRecved != -1 {
+			logging.Logger.Printf("[TcpSocket] Send() socket packetsQueue has at least 1 packet\n")
+			//retrieve the top element
+			item := heap.Pop(&socket.packetsQueue).(*PacketInFlight)
+			logging.Logger.Printf("[TcpSocket] pq length : %d top ExpectedAckNum:%d MaxAckNumRecved:%d\n", socket.packetsQueue.Len(), item.ExpectedAckNum, socket.MaxAckNumRecved)
+			if item.ExpectedAckNum <= socket.MaxAckNumRecved {
+				logging.Logger.Printf("[TcpSocket] Send() discarding a packet in flight, a larger ACK has already been received\n")
+				socket.sendWindow.BytesInFlight -= len(item.Packet.Payload)
+				logging.Logger.Printf("[TcpSocket] Pop Sucess, length : %d", socket.packetsQueue.Len())
 			} else {
 				//if timeout, retransmit
-				if socket.packetsQueue[n-1].ExpireTimeNanos+MAX_WATINGTIME < time.Now().UnixNano() {
-					tcppacket := socket.packetsQueue[n-1].Packet
+				if item.ExpireTimeNanos+MAX_WATINGTIME < time.Now().UnixNano() {
+					tcppacket := item.Packet
 					socket.SendData(tcppacket.Tcpheader.SeqNum, tcppacket.Tcpheader.AckNum, tcppacket.Payload)
 					logging.Logger.Printf("[TcpSocket] Send() retransmition, seqnum:%d acknum:%d", tcppacket.Tcpheader.SeqNum, tcppacket.Tcpheader.AckNum)
-					//update the packet in the pq
-					//socket.packetsQueue.update(socket.packetsQueue[n-1], time.Now().UnixNano())
+					item.ExpireTimeNanos = time.Now().UnixNano()
 				}
-				logging.Logger.Printf("nothing expired, looooooooooop yooooo")
+				logging.Logger.Printf("[TcpSocket] Send() nothing expired, looooooooooop yooooo")
+				//push the item back to heap
+				heap.Push(&socket.packetsQueue, item)
+				break
+
 			}
 		}
 		//if there are bytes should be sent
 		buffer, seqnum := socket.sendWindow.Send()
-		logging.Logger.Printf("[TcpSocket] Send() send buffer:%d, seqnum:%d\n", len(buffer), seqnum)
+
 		if seqnum > 0 && len(buffer) > 0 {
+			logging.Logger.Printf("[TcpSocket] Send() send buffer:%d, seqnum:%d\n", len(buffer), seqnum)
 			//logging.Logger.Printf("[TcpSocket] Send() send buffer:%s len : %d seqnum:%d\n", string(buffer), len(buffer), seqnum)
 			tcppacket, _ := socket.SendData(seqnum, socket.dataSentAck, buffer)
-			socket.sendWindow.BytesInFlight += 1
+			socket.sendWindow.BytesInFlight += len(buffer)
 			//put it into pq
 			packetinflight := PacketInFlight{
 				Index:           -1,
@@ -145,6 +148,7 @@ func (socket *TcpSocket) Send() {
 				ExpectedAckNum:  tcppacket.Tcpheader.SeqNum + len(tcppacket.Payload),
 			}
 			heap.Push(&socket.packetsQueue, &packetinflight)
+			logging.Logger.Printf("[TcpSocket] Send() push to pq time:%d, ExpectedAckNum:%d\n", packetinflight.ExpireTimeNanos, packetinflight.ExpectedAckNum)
 		}
 
 	}
@@ -250,7 +254,9 @@ func (socket *TcpSocket) AddToBuffer(buf []byte, nbyte int) int {
 	var size int
 	for {
 		size = socket.sendWindow.Write(buf, nbyte)
-		logging.Logger.Printf("[TcpSocket] AddToBuffer socketfd:%d write size :%d", socket.Fd, size)
+		if size > 0 {
+			logging.Logger.Printf("[TcpSocket] AddToBuffer socketfd:%d write size :%d", socket.Fd, size)
+		}
 		if size == nbyte {
 			break
 		} else {

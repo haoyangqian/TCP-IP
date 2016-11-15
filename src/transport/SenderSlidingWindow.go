@@ -102,7 +102,7 @@ func (w *SenderSlidingWindow) Send() ([]byte, int) {
 		return []byte{}, -1
 	}
 	//check the length of bytes can be sent
-	if w.EffectiveWindowSize() == 0 {
+	if w.EffectiveWindowSize() <= 0 {
 		//send 1-byte probing packet
 		//logging.Logger.Printf("[SendWindow] EffectiveWindowSize == 0 \n")
 		return []byte{}, -2
@@ -130,7 +130,7 @@ func (w *SenderSlidingWindow) Send() ([]byte, int) {
 		}
 	}
 	if len(buffer) > 0 {
-		logging.Logger.Printf("[DEBUG][SendWindow] Send() length:%d buffer:%s \n", len(buffer), string(buffer))
+		logging.Logger.Printf("[DEBUG][SendWindow] Send() length:%d returnseqnum:%d\n", len(buffer), returnseqnum)
 	}
 	w.BytesToSend -= len(buffer)
 	logging.Logger.Printf("[DEBUG][SendWindow] Send() BytesToSend:%d\n", w.BytesToSend)

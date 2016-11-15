@@ -58,7 +58,13 @@ func Csum(data []byte, srcip, dstip []byte) int {
 	}
 	if lenSumThis%2 != 0 {
 		//fmt.Println("Odd byte")
-		sum += uint32(sumThis[lenSumThis-1])
+		end := make([]byte, 4)
+		end[0] = sumThis[lenSumThis-1]
+		end[1] = 0
+		end[2] = 0
+		end[3] = 0
+		sum += binary.BigEndian.Uint32(end)
+		//sum += uint32(sumThis[lenSumThis-1])
 	}
 
 	// Add back any carry, and any carry from adding the carry
