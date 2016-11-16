@@ -2,6 +2,7 @@ package network
 
 import "model"
 import "fmt"
+
 import "logging"
 import "transport"
 
@@ -80,7 +81,7 @@ func (accessor *NetworkAccessor) Send(request model.SendMessageRequest, chToLink
 	if toSelf && !localDelivery {
 		// the packet is intended for the local node but the destination VIP is unreachable
 		// this might happen if a interface is down but other nodes managed to send in requests before their routes were updated
-		dropPacket(packet, "A packet is inteded for a local VIP but that VIP is not reachable locally")
+		dropPacket(packet, "A packet is intended for a local VIP but that VIP is not reachable locally")
 		return
 	}
 
@@ -114,7 +115,7 @@ func (accessor *NetworkAccessor) ForwardPacket(packet model.IpPacket, chToForwar
 
 	if packet.Ipheader.Protocol == 6 {
 		tcppacket := transport.ConvertToTcpPacket(packet.Payload)
-		logging.Logger.Printf("[IpHandler][TcpPacket] Seqnum: %d, Acknum: %d, from %+v to %+v, window size: %d, payload size: %d, ctrlFlag: %b\n",
+		logging.Printf("[IpHandler][TcpPacket] Seqnum: %d, Acknum: %d, from %+v to %+v, window size: %d, payload size: %d, ctrlFlag: %b\n",
 			tcppacket.Tcpheader.SeqNum, tcppacket.Tcpheader.AckNum, tcppacket.Tcpheader.Source, tcppacket.Tcpheader.Destination,
 			tcppacket.Tcpheader.Window, len(tcppacket.Payload), tcppacket.Tcpheader.Ctrl)
 	}

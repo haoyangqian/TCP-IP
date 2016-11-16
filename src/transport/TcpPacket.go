@@ -65,6 +65,7 @@ func Csum(data []byte, srcip, dstip []byte) int {
 		end[3] = 0
 		sum += binary.BigEndian.Uint32(end)
 		//sum += uint32(sumThis[lenSumThis-1])
+
 	}
 
 	// Add back any carry, and any carry from adding the carry

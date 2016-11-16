@@ -8,11 +8,12 @@ import (
 )
 
 var (
-	LogFile *os.File
-	Logger  *log.Logger
+	LogFile       *os.File
+	Logger        *log.Logger
+	EnableLogging bool
 )
 
-func Init(filename string) {
+func Init(filename string, enableLogging bool) {
 	tokens := strings.Split(filename, "/")
 	filename = tokens[len(tokens)-1] + ".log"
 
@@ -23,4 +24,18 @@ func Init(filename string) {
 
 	LogFile = file
 	Logger = log.New(LogFile, "", log.Ltime)
+	EnableLogging = enableLogging
+}
+
+func Println(a ...interface{}) {
+	if EnableLogging {
+		Logger.Println(a...)
+	}
+}
+
+func Printf(formatString string, a ...interface{}) {
+	if EnableLogging {
+		Logger.Printf(formatString, a...)
+
+	}
 }

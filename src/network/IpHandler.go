@@ -12,7 +12,7 @@ type IpHandler struct {
 }
 
 func (handler IpHandler) Handle(packet model.IpPacket, receivedFrom model.VirtualIp) {
-	printPacketInfo(packet)
+	// printPacketInfo(packet)
 	handler.handlePacket(packet)
 
 }

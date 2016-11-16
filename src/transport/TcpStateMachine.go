@@ -211,7 +211,7 @@ func (m *TcpStateMachine) Transit(event TcpTransitionEvent) error {
 		m.stateTimer = time.NewTimer(time.Duration(m.CurrentState().StateTimeoutNanos) * time.Nanosecond)
 	}
 
-	logging.Logger.Println("[TcpStateMachine]", m.fd, "has transited into state", m.CurrentState().Name)
+	logging.Println("[TcpStateMachine]", m.fd, "has transited into state", m.CurrentState().Name)
 	return nil
 }
 
