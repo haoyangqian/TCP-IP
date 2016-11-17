@@ -216,7 +216,7 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 			socket.dataSentAck = tcppacket.Tcpheader.AckNum
 			logging.Printf("[TcpSocket] trying to initialize Send window, windowsize :%d first seqnum:%d\n", MAX_WINDOWSIZE, socket.lastRecvAck)
 			socket.sendWindow = MakeSenderSlidingWindow(MAX_WINDOWSIZE, socket.lastRecvAck)
-			logging.Printf("[TcpSocket] %d InitializeD Send window, ring Size :%d first seqnum:%d\n", socket.Fd, socket.sendWindow.bufferSize, socket.sendWindow.Seqnum)
+			logging.Printf("[TcpSocket] %d InitializeD Send window, ring Size :%d first seqnum:%d\n", socket.Fd, socket.sendWindow.bufferSize, socket.sendWindow.returnSeqNum)
 			//			if socket.recvWindow.bufferSize == 0 {
 			logging.Printf("[TcpSocket] trying to initialize Recv window, advertised window:%d\n", tcppacket.Tcpheader.Window)
 			//				socket.recvWindow = MakeReceiverSlidingWindow(MAX_WINDOWSIZE)
