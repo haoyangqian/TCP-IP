@@ -14,6 +14,10 @@ var (
 )
 
 func Init(filename string, enableLogging bool) {
+	if !enableLogging {
+		return
+	}
+
 	tokens := strings.Split(filename, "/")
 	filename = tokens[len(tokens)-1] + ".log"
 

@@ -54,6 +54,8 @@ func (w *ReceiverSlidingWindow) AdvertisedWindowSize() int {
 }
 
 func (w *ReceiverSlidingWindow) Receive(seqNum int, payload []byte) int {
+	//	return seqNum + len(payload)
+
 	// check whether packet is in the window
 	//logging.Printf("[DEBUG][RecvWindow] payload length: %d\n", len(payload))
 	w.Lock.Lock()

@@ -1,7 +1,6 @@
 package transport
 
 import (
-	//"fmt"
 	"container/heap"
 	"logging"
 	"model"
@@ -29,7 +28,7 @@ type TcpSocket struct {
 	MaxAckNumRecved int
 	packetsQueue    PriorityQueue
 	sendWindow      SenderSlidingWindow
-	recvWindow      ReceiverSlidingWindow
+	recvWindow      ArrayBasedReceiverSlidingWindow
 }
 
 func MakeSocket(fd int, fsm TcpStateMachine, ch chan<- model.SendMessageRequest) TcpSocket {
@@ -44,7 +43,7 @@ func MakeSocket(fd int, fsm TcpStateMachine, ch chan<- model.SendMessageRequest)
 		SendToIpCh:      ch,
 		packetsQueue:    pq,
 		MaxAckNumRecved: -1,
-		recvWindow:      MakeReceiverSlidingWindow(MAX_WINDOWSIZE),
+		recvWindow:      MakeArrayBasedReceiverSlidingWindow(MAX_WINDOWSIZE),
 	}
 }
 
@@ -52,7 +51,7 @@ func (socket *TcpSocket) GetSendingWindow() *SenderSlidingWindow {
 	return &socket.sendWindow
 }
 
-func (socket *TcpSocket) GetReceiverWindow() *ReceiverSlidingWindow {
+func (socket *TcpSocket) GetReceiverWindow() *ArrayBasedReceiverSlidingWindow {
 	return &socket.recvWindow
 }
 
@@ -162,6 +161,7 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 	// recv
 	tcppacket := ConvertToTcpPacket(packet.Payload)
 	socket.lastRecvAck = tcppacket.Tcpheader.AckNum
+	payloadSize := len(tcppacket.Payload)
 	//fmt.Println(tcppacket.TcpPacketString())
 	if socket.StateMachine.CurrentState() != TCP_ESTAB {
 		if tcppacket.Tcpheader.HasFlag(ACK) {
@@ -170,7 +170,7 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 				return
 			}
 		}
-	} else if len(tcppacket.Payload) == 0 {
+	} else if payloadSize == 0 {
 		logging.Printf("[TcpSocket] recv ctrl()--ctrl:%b,laddr:%s,lport,%d,raddr:%s,rport:%d\n", tcppacket.Tcpheader.Ctrl, packet.Ipheader.Dst, tcppacket.Tcpheader.Destination, packet.Ipheader.Src, tcppacket.Tcpheader.Source)
 		socket.sendWindow.lastAdvertisedWindowSize = tcppacket.Tcpheader.Window
 		if tcppacket.Tcpheader.HasFlag(ACK) {
@@ -239,11 +239,12 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 		return
 	}
 
-	if len(tcppacket.Payload) > 0 && (socket.StateMachine.CurrentState() == TCP_ESTAB || socket.StateMachine.CurrentState().IsActiveClose) {
+	if payloadSize > 0 && (socket.StateMachine.CurrentState() == TCP_ESTAB || socket.StateMachine.CurrentState().IsActiveClose) {
 		logging.Printf("[TcpSocket] %d receiving data packet", socket.Fd)
+
 		ack := socket.recvWindow.Receive(tcppacket.Tcpheader.SeqNum, tcppacket.Payload)
 		if ack > 0 {
-			socket.SendCtrl(ACK, tcppacket.Tcpheader.AckNum, ack, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
+			go socket.SendCtrl(ACK, tcppacket.Tcpheader.AckNum, ack, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
 		}
 	}
 }

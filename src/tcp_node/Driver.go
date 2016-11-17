@@ -219,8 +219,13 @@ func main() {
 	//link_file := "src.lnx"
 	interfaces := ReadLnx(link_file)
 
-	logging.Init(link_file, true)
-	logging.Logger.Println("*********************************************************")
+	if os.Args[2] == "1" {
+		logging.Init(link_file, true)
+	} else {
+		logging.Init(link_file, false)
+	}
+
+	logging.Println("*********************************************************")
 
 	table := SetRoutingtable(interfaces)
 

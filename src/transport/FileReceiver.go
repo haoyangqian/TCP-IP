@@ -37,16 +37,26 @@ func (fr *FileReceiver) Recv() {
 	fr.socketmanager.SetSocketAddr(newFd, SocketAddr{listenSocket.Addr.LocalIp, listenSocket.Addr.LocalPort, addr, port})
 	go newrunner.Run()
 	for {
-		if newsocket.StateMachine.CurrentState() == TCP_ESTAB {
+		if newsocket.StateMachine.CurrentState() == TCP_CLOSE_WAIT {
+			// read all bytes left in the buffer, then terminate the reading loop
+			for {
+				buff, size := fr.socketmanager.V_read(newFd, 1024)
+				if size == 0 {
+					break
+				}
+
+				fr.file.Write(buff)
+			}
+			break
+		} else {
 			buff, size := fr.socketmanager.V_read(newFd, 1024)
 			if size != 0 {
 				fr.file.Write(buff)
-			} else if newsocket.StateMachine.CurrentState() == TCP_CLOSE_WAIT {
-				break
 			}
 		}
 	}
-	fmt.Printf("recvfile on socket %d done", newsocket.Fd)
+
+	fmt.Printf("recvfile on socket %d completed\n", newsocket.Fd)
 	fmt.Printf("ENDING RECVFILE\n")
 	//fmt.Println("%d")
 	fr.CloseReceiver()
