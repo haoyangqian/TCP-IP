@@ -278,8 +278,8 @@ func (manager *SocketManager) V_write(socketfd int, buf []byte, nbyte int) int {
 	//if full, blocking
 	socket, _ := manager.GetSocketByFd(socketfd)
 	size := socket.AddToBuffer(buf, nbyte)
-	fmt.Printf("v_write() on %d bytes returned %d\n", nbyte, nbyte)
-	logging.Logger.Printf("[SocketManager] V_write socketfd:%d write size :%d", socket.Fd, size)
+	//fmt.Printf("v_write() on %d bytes returned %d\n", nbyte, nbyte)
+	logging.Printf("[SocketManager] V_write socketfd:%d write size :%d", socket.Fd, size)
 	return size
 }
 

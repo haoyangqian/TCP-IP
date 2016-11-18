@@ -48,33 +48,45 @@ func MakeSenderSlidingWindow(bufferSize int, seq int) SenderSlidingWindow {
 	}
 }
 
+func (w *SenderSlidingWindow) UpdateLastAdvertisedWindow(window int) {
+	w.Lock.Lock()
+	defer w.Lock.Unlock()
+	w.lastAdvertisedWindowSize = window
+}
+
+func (w *SenderSlidingWindow) UpdateBytesInFlight(bytes int) {
+	w.Lock.Lock()
+	defer w.Lock.Unlock()
+	w.BytesInFlight = bytes
+}
+
 func (w *SenderSlidingWindow) EffectiveWindowSize() int {
 	//effective window size = lastAdvertisedWindowSize - len(bytes in flight)
 	return w.lastAdvertisedWindowSize - w.BytesInFlight
 }
 
 func (w *SenderSlidingWindow) AvailableWriteSpace() int {
-
 	return w.bufferSize - w.BytesToSend
 }
 
 func (w *SenderSlidingWindow) Send() ([]byte, int) {
+	//check the length of bytes should be sent
 	w.Lock.RLock()
 	defer w.Lock.RUnlock()
-	//check the length of bytes should be sent
 	if w.BytesToSend == 0 {
 		//logging.Printf("[SendWindow] No Bytes to send\n")
 		return []byte{}, -1
 	}
 	logging.Printf("1 BytesToSend:%d EffectiveWindowSize:%d\n", w.BytesToSend, w.EffectiveWindowSize())
 	//check the length of bytes can be sent
-	if w.EffectiveWindowSize() < 0 {
+	EffectiveWindow := w.EffectiveWindowSize()
+	if EffectiveWindow < 0 {
 		return []byte{}, -2
 	}
 	//logging.Printf("[DEBUG][SendWindow] Send() BytesToSent:%d , EffectiveWindowSize : %d", w.BytesToSend, w.EffectiveWindowSize())
-	sendsize := w.EffectiveWindowSize()
+	sendsize := EffectiveWindow
 	logging.Printf("2 sendsize:%d BytesToSend:%d EffectiveWindowSize:%d\n", sendsize, w.BytesToSend, w.EffectiveWindowSize())
-	if w.BytesToSend < w.EffectiveWindowSize() {
+	if w.BytesToSend < EffectiveWindow {
 		sendsize = w.BytesToSend
 	}
 	//can only send MAX_PAYLOAD at once in a tcppacket
@@ -97,14 +109,7 @@ func (w *SenderSlidingWindow) Send() ([]byte, int) {
 			w.lastByteSent = 0
 		}
 		buffer[i] = w.buffer[w.lastByteSent]
-		//		if w.dirty[w.lastByteSent] {
-		//			buffer[i] = w.buffer[w.lastByteSent]
-		//			w.dirty[w.lastByteSent] = false
-		//		}
 	}
-	//	if len(buffer) > 0 {
-	//		logging.Printf("[DEBUG][SendWindow] Send() length:%d \n", len(buffer))
-	//	}
 	w.BytesToSend -= len(buffer)
 	logging.Printf("[DEBUG][SendWindow] Send() BytesToSend:%d\n", w.BytesToSend)
 	w.returnSeqNum += sendsize
@@ -112,32 +117,26 @@ func (w *SenderSlidingWindow) Send() ([]byte, int) {
 }
 
 func (w *SenderSlidingWindow) Write(buff []byte, nbytes int) int {
-	w.Lock.Lock()
-	defer w.Lock.Unlock()
 	var writelength int
 	//check if there are enough space
-	if nbytes <= w.AvailableWriteSpace() {
+	writespace := w.AvailableWriteSpace()
+	if nbytes <= writespace {
 		writelength = nbytes
 	} else {
-		writelength = w.AvailableWriteSpace()
+		writelength = writespace
 	}
-
+	logging.Printf("[DEBUG][SendWindow] Write() lenofbuff:%d nbytes:%d writespace:%d\n", len(buff), nbytes, writespace)
+	w.Lock.Lock()
 	for i := 0; i < writelength; i++ {
 		w.lastByteWritten = w.lastByteWritten + 1
 		if w.lastByteWritten >= w.bufferSize {
 			w.lastByteWritten = 0
 		}
+
 		w.buffer[w.lastByteWritten] = buff[i]
 		w.BytesToSend += 1
-		//		if w.dirty[w.lastByteWritten] {
-		//			logging.Printf("[DEBUG][SendWindow] Overwrite buffer")
-		//		} else {
-		//			w.buffer[w.lastByteWritten] = buff[i]
-		//			w.dirty[w.lastByteWritten] = true
-		//			//logging.Printf("[SendWindow] Write buffer:%s,seq:%d\n", string(w.lastByteWritten.Next().Value.(TcpByte).B), w.lastByteWritten.Next().Value.(TcpByte).SeqNum)
-		//			w.BytesToSend += 1
-		//		}
 	}
-	//logging.Printf("[DEBUG][SendWindow] write length: %d distance: %d", writelength, w.BytesToSend)
+	w.Lock.Unlock()
+
 	return writelength
 }

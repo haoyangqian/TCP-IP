@@ -7,6 +7,7 @@ import (
 	"logging"
 	"model"
 	"os"
+	"time"
 )
 
 type FileSender struct {
@@ -41,8 +42,10 @@ func (fs *FileSender) Send() {
 		fmt.Printf("[MakefileSender] Connect fail")
 	}
 
+	starttime := time.Now().UnixNano()
 	for {
 		//passive_close !!!!!!
+		logging.Printf("[FileSender] : state %s\n buffer size :%d", fs.socket.StateMachine.CurrentState().Name, fs.socket.sendWindow.bufferSize)
 		if fs.socket.StateMachine.CurrentState() == TCP_ESTAB && fs.socket.sendWindow.bufferSize != 0 {
 			buf := make([]byte, 1024)
 			n, err := fs.file.Read(buf)
@@ -54,13 +57,16 @@ func (fs *FileSender) Send() {
 			}
 			size := fs.socketmanager.V_write(socketFd, buf, n)
 			if size != 0 {
-				logging.Logger.Printf("[FileSender] v_write success! size : %d\n", size)
+				logging.Printf("[FileSender] v_write success! size : %d\n", size)
 			}
 		}
 	}
 	//send fin
+	//fs.socket.SendCtrl(FIN, fs.socket., acknum, laddr, lport, raddr, rport)
 	//	fs.socket.SendCtrl(FIN|ACK, seqnum, acknum, laddr, lport, raddr, rport)
 	fmt.Printf("sendfile on socket %d done\n", socketFd)
 	fmt.Printf("ENDING SENDFILE\n")
+	endtime := time.Now().UnixNano()
+	fmt.Printf("total time:%d ms, %d s", (endtime-starttime)/1000000, (endtime-starttime)/1000000000)
 	fs.CloseSender()
 }
