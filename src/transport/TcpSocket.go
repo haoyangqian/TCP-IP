@@ -189,7 +189,7 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 			} else {
 				ctrl := resp.GetCtrlFlags()
 				//fmt.Printf("should send: ctrl : %b\n", ctrl)
-				socket.SendCtrl(ctrl, socket.lastSentSeq, tcppacket.Tcpheader.SeqNum+1, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
+				socket.SendCtrl(ctrl, socket.lastSentSeq+1, tcppacket.Tcpheader.SeqNum+1, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
 			}
 
 		}
