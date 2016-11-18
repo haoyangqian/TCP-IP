@@ -34,8 +34,14 @@ func (w *ArrayBasedReceiverSlidingWindow) SetNextExpectedSeqNum(seqNum int) {
 	w.nextByteToRead = seqNum
 }
 
-func (w *ArrayBasedReceiverSlidingWindow) AdvertisedWindowSize() int {
+func (w *ArrayBasedReceiverSlidingWindow) advertisedWindowSize() int {
 	return w.bufferSize - (w.nextSeqNumExpected - w.nextByteToRead)
+}
+
+func (w *ArrayBasedReceiverSlidingWindow) AdvertisedWindowSize() int {
+	w.Lock.RLock()
+	defer w.Lock.RUnlock()
+	return w.advertisedWindowSize()
 }
 
 func (w *ArrayBasedReceiverSlidingWindow) Receive(seqNum int, payload []byte) int {
@@ -48,7 +54,7 @@ func (w *ArrayBasedReceiverSlidingWindow) Receive(seqNum int, payload []byte) in
 	payloadSize := len(payload)
 
 	if w.outOfWindow(seqNum, payloadSize) {
-		logging.Printf("[RecvWindow] Dropping out-of-window/too-big packet, seqNum %d, expected seqNum is %d, windowsize is %d, payload size is %d\n", seqNum, w.nextSeqNumExpected, w.AdvertisedWindowSize(), len(payload))
+		logging.Printf("[RecvWindow] Dropping out-of-window/too-big packet, seqNum %d, expected seqNum is %d, windowsize is %d, payload size is %d\n", seqNum, w.nextSeqNumExpected, w.advertisedWindowSize(), len(payload))
 		return w.nextSeqNumExpected
 	}
 
@@ -97,12 +103,13 @@ func (w *ArrayBasedReceiverSlidingWindow) Receive(seqNum int, payload []byte) in
 }
 
 func (w *ArrayBasedReceiverSlidingWindow) Read(bytes int) ([]byte, int) {
+	w.Lock.Lock()
+	defer w.Lock.Unlock()
+
 	if w.nextSeqNumExpected-w.nextByteToRead == 0 {
 		return []byte{}, 0
 	}
 
-	w.Lock.Lock()
-	defer w.Lock.Unlock()
 	readableBytes := w.nextSeqNumExpected - w.nextByteToRead
 
 	if readableBytes > 0 {
@@ -127,6 +134,9 @@ func (w *ArrayBasedReceiverSlidingWindow) Read(bytes int) ([]byte, int) {
 }
 
 func (w *ArrayBasedReceiverSlidingWindow) GetAck(seqNum int, payloadSize int) int {
+	w.Lock.RLock()
+	defer w.Lock.RUnlock()
+
 	if w.outOfWindow(seqNum, payloadSize) {
 		return w.nextSeqNumExpected
 	}
@@ -146,5 +156,5 @@ func (w *ArrayBasedReceiverSlidingWindow) GetAck(seqNum int, payloadSize int) in
 }
 
 func (w *ArrayBasedReceiverSlidingWindow) outOfWindow(seqNum int, payloadSize int) bool {
-	return seqNum < w.nextSeqNumExpected || seqNum > (w.nextSeqNumExpected+w.AdvertisedWindowSize()) || payloadSize > w.AdvertisedWindowSize()
+	return seqNum < w.nextSeqNumExpected || seqNum > (w.nextSeqNumExpected+w.advertisedWindowSize()) || payloadSize > w.advertisedWindowSize()
 }
