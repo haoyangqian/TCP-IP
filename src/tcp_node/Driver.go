@@ -219,7 +219,7 @@ func main() {
 	//link_file := "src.lnx"
 	interfaces := ReadLnx(link_file)
 
-	if os.Args[2] == "1" {
+	if len(os.Args) > 2 && os.Args[2] == "1" {
 		logging.Init(link_file, true)
 	} else {
 		logging.Init(link_file, false)
@@ -309,6 +309,14 @@ func main() {
 				break
 			}
 			socketmanager.V_connect(socketfd, model.VirtualIp{dstIp}, dstPort)
+		case "close":
+			if len(tokens) != 2 || tokens[1] == "\n" {
+				fmt.Println("syntax error(usage: close [fd])")
+				break
+			}
+
+			socketFd, _ := strconv.Atoi(tokens[1])
+			socketmanager.V_close(socketFd)
 		case "up":
 			id, _ := strconv.Atoi(tokens[1])
 

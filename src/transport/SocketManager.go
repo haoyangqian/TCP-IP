@@ -287,6 +287,16 @@ func (manager *SocketManager) V_shutdown(socket int, closeType int) int {
 	return 0
 }
 
-func (manager *SocketManager) V_close(socket int) int {
-	return 0
+func (manager *SocketManager) V_close(socketfd int) int {
+	socket, _ := manager.GetSocketByFd(socketfd)
+	if socket.StateMachine.HasTransition(TCP_CLOSE) {
+		resp, _ := socket.StateMachine.GetResponse(TCP_CLOSE)
+		socket.SendCtrl(resp.GetCtrlFlags(), socket.lastRecvAck, socket.lastSentAck, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
+
+		socket.StateMachine.Transit(TCP_CLOSE)
+		return 0
+	} else {
+		fmt.Printf("Socket %d does not have a transition for v_close(), current state %s\n", socket.Fd, socket.StateMachine.CurrentState().Name)
+		return -1
+	}
 }

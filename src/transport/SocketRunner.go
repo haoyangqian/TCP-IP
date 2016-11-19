@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"logging"
 	"model"
+	"time"
 )
 
 type SocketRunner struct {
@@ -32,12 +33,18 @@ func (runner *SocketRunner) Run() {
 				continue
 			}
 
+			if runner.Socket.StateMachine.CurrentState().CloseOnTimeout {
+				time.Sleep(time.Duration(runner.Socket.StateMachine.CurrentState().StateTimeoutNanos) * time.Nanosecond)
+				runner.Socket.StateMachine.Transit(TCP_TIMEOUT_2MSL)
+				return
+			}
+
 			if runner.Socket.StateMachine.RetryCount() >= TCP_MAX_RETRY_COUNT {
 				// terminate this thread, this socket is literally dead
 				return
 			}
 
-			logging.Logger.Println("[SocketRunner]", runner.Socket.Fd, "socket state timed out, retrying #", runner.Socket.StateMachine.RetryCount())
+			logging.Println("[SocketRunner]", runner.Socket.Fd, "socket state timed out, retrying #", runner.Socket.StateMachine.RetryCount())
 			runner.Socket.RepeatPreviousStateAction()
 			runner.Socket.StateMachine.ResetStateTimer()
 		}

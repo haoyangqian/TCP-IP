@@ -64,9 +64,11 @@ func (fs *FileSender) Send() {
 	//send fin
 	//fs.socket.SendCtrl(FIN, fs.socket., acknum, laddr, lport, raddr, rport)
 	//	fs.socket.SendCtrl(FIN|ACK, seqnum, acknum, laddr, lport, raddr, rport)
+	fs.socketmanager.V_close(fs.socket.Fd)
+
 	fmt.Printf("sendfile on socket %d done\n", socketFd)
 	fmt.Printf("ENDING SENDFILE\n")
 	endtime := time.Now().UnixNano()
-	fmt.Printf("total time:%d ms, %d s", (endtime-starttime)/1000000, (endtime-starttime)/1000000000)
+	fmt.Printf("total time:%d ms, %d s\n", (endtime-starttime)/1000000, (endtime-starttime)/1000000000)
 	fs.CloseSender()
 }

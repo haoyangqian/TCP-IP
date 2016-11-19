@@ -10,9 +10,9 @@ import (
  * Constants
  */
 var (
-	TCP_STATE_DEFAULT_TIMEOUT_NANOS = int64(1000000000) //1S
-	TCP_MSL_MILLIS                  = int64(60 * 1000)
-	TCP_MAX_RETRY_COUNT             = 100 //3
+	TCP_STATE_DEFAULT_TIMEOUT_NANOS = int64(1 * 1000 * 1000 * 1000) //1s
+	TCP_MSL_NANOS                   = int64(2 * 1000 * 1000 * 1000) // 2s
+	TCP_MAX_RETRY_COUNT             = 100                           //3
 
 	// EVENTS
 	TCP_ACTIVE_OPEN  TcpTransitionEvent = TcpTransitionEvent{ActiveOpen: true}
@@ -46,7 +46,7 @@ var (
 	TCP_FIN_WAIT_1 TcpState = TcpState{Name: "FIN_WAIT_1", IsActiveClose: true, StateTimeoutNanos: TCP_STATE_DEFAULT_TIMEOUT_NANOS}
 	TCP_FIN_WAIT_2 TcpState = TcpState{Name: "FIN_WAIT_2", IsActiveClose: true, StateTimeoutNanos: TCP_STATE_DEFAULT_TIMEOUT_NANOS}
 	TCP_CLOSING    TcpState = TcpState{Name: "CLOSING", IsActiveClose: true, StateTimeoutNanos: TCP_STATE_DEFAULT_TIMEOUT_NANOS}
-	TCP_TIME_WAIT  TcpState = TcpState{Name: "TIME_WAIT", IsActiveClose: true, StateTimeoutNanos: TCP_MSL_MILLIS * 2}
+	TCP_TIME_WAIT  TcpState = TcpState{Name: "TIME_WAIT", IsActiveClose: true, StateTimeoutNanos: TCP_MSL_NANOS * 2, CloseOnTimeout: true}
 
 	// passive close
 	TCP_CLOSE_WAIT   TcpState = TcpState{Name: "CLOSE_WAIT", IsPassiveClose: true, StateTimeoutNanos: int64(0)}
