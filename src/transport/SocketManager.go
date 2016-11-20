@@ -284,10 +284,12 @@ func (manager *SocketManager) V_shutdown(socketfd int, closeType int) int {
 	//close the writing part, send a FIN, but the retransmission part should still work
 	if closeType == 1 {
 		socket.RWstate = ONLY_READ
+		manager.V_close(socketfd)
 	} else if closeType == 2 {
 		socket.RWstate = ONLY_WRITE
 	} else if closeType == 3 {
 		socket.RWstate = NO_RW
+		manager.V_close(socketfd)
 	}
 
 	return 0

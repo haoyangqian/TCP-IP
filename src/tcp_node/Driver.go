@@ -421,16 +421,18 @@ func main() {
 			}
 		case "shutdown":
 			if len(tokens) != 3 {
-				fmt.Println("invalid args: shutdown [socket] read(r)/write(w)/rw ")
+				fmt.Println("invalid args: shutdown [socket] read(r)/write(w)/both ")
 			}
 			socketfd, _ := strconv.Atoi(tokens[1])
-			var res int
+			res := -1
 			if tokens[2] == "read" || tokens[2] == "r" {
 				res = socketmanager.V_shutdown(socketfd, 2)
 			} else if tokens[2] == "write" || tokens[2] == "w" {
 				res = socketmanager.V_shutdown(socketfd, 1)
-			} else if tokens[3] == "rw" {
+			} else if tokens[2] == "both" {
 				res = socketmanager.V_shutdown(socketfd, 3)
+			} else {
+				fmt.Println("invalid args: shutdown [socket] read(r)/write(w)/both ")
 			}
 			fmt.Println("v_shutdown() return ", res)
 		case "close":

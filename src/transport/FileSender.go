@@ -72,12 +72,13 @@ func (fs *FileSender) Send() {
 	endtime := time.Now().UnixNano()
 	fmt.Printf("total time:%d ms, %d s\n", (endtime-starttime)/1000000, (endtime-starttime)/1000000000)
 	//  little bug when close the
-	for {
-		//fmt.Println("heap length: ", fs.socket.packetsQueue.Len())
-		if fs.socket.packetsQueue.Len() == 0 && fs.socket.SendWindow.BytesToSend == 0 {
-			fs.CloseSender()
-			break
-		}
-	}
+	time.Sleep(1000 * time.Millisecond)
+	fs.CloseSender()
+	//	for {
+	//		if fs.socket.MaxAckNumRecved > fs.socket.lastSentSeq {
+	//			fs.CloseSender()
+	//			break
+	//		}
+	//	}
 
 }

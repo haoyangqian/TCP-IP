@@ -16,7 +16,7 @@ const (
 	ONLY_READ      = 1
 	ONLY_WRITE     = 2
 	NO_RW          = 3
-	MAX_RETRANSMIT = 3
+	MAX_RETRANSMIT = 5
 )
 
 type TcpSocket struct {
@@ -199,7 +199,11 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 			} else {
 				ctrl := resp.GetCtrlFlags()
 				//fmt.Printf("should send: ctrl : %b\n", ctrl)
-				socket.SendCtrl(ctrl, socket.lastSentSeq+1, tcppacket.Tcpheader.SeqNum+1, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
+				if socket.StateMachine.CurrentState() == TCP_CLOSING {
+					socket.SendCtrl(ctrl, socket.lastSentSeq+1, tcppacket.Tcpheader.SeqNum, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
+				} else {
+					socket.SendCtrl(ctrl, socket.lastSentSeq+1, tcppacket.Tcpheader.SeqNum+1, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
+				}
 			}
 
 		}
