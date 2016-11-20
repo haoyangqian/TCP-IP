@@ -283,9 +283,9 @@ func main() {
 			newrunner, _ := socketmanager.GetRunnerByFd(newFd)
 			socketmanager.SetSocketAddr(newFd, transport.SocketAddr{listenSocket.Addr.LocalIp, listenSocket.Addr.LocalPort, addr, port})
 			go newrunner.Run()
-		case "sockets":
+		case "sockets", "ls":
 			socketmanager.PrintSockets()
-		case "accept":
+		case "accept", "a":
 			if len(tokens) != 2 || tokens[1] == "\n" {
 				fmt.Println("syntax error(usage: accept [port])")
 				break
@@ -295,7 +295,7 @@ func main() {
 			port = port % 65535
 			go TcpSocketAccept(socketmanager, port)
 
-		case "connect":
+		case "connect", "c":
 			if len(tokens) != 3 || tokens[1] == "\n" {
 				fmt.Println("syntax error(usage: connect [ip] [port])")
 				break
@@ -309,14 +309,6 @@ func main() {
 				break
 			}
 			socketmanager.V_connect(socketfd, model.VirtualIp{dstIp}, dstPort)
-		case "close":
-			if len(tokens) != 2 || tokens[1] == "\n" {
-				fmt.Println("syntax error(usage: close [fd])")
-				break
-			}
-
-			socketFd, _ := strconv.Atoi(tokens[1])
-			socketmanager.V_close(socketFd)
 		case "up":
 			id, _ := strconv.Atoi(tokens[1])
 
@@ -339,7 +331,7 @@ func main() {
 				table.DeleteNeighbor(downedInterface.Dest)
 			}
 
-		case "send":
+		case "send", "s", "w":
 			{
 				if len(tokens) != 3 {
 					fmt.Println("invalid args: send <socket> <data>")
@@ -364,7 +356,7 @@ func main() {
 			} else {
 				go filesender.Send()
 			}
-		case "recv":
+		case "recv", "r":
 			if len(tokens) != 4 {
 				fmt.Println("invalid args: recv [socket] [numbytes] [y/n] ")
 				break
@@ -385,9 +377,14 @@ func main() {
 
 			bytesRead := 0
 			result := make([]byte, 0)
-			if shouldBlock {
+			socket, _ := socketmanager.GetSocketByFd(socketFd)
+			if shouldBlock || socket.RecvWindow.BytesInBuffer == 0 {
 				for {
 					buff, size := socketmanager.V_read(socketFd, nBytes-bytesRead)
+					if size < 0 {
+						bytesRead = size
+						break
+					}
 					bytesRead += size
 					result = append(result, buff...)
 
@@ -398,9 +395,10 @@ func main() {
 			} else {
 				result, bytesRead = socketmanager.V_read(socketFd, nBytes)
 			}
-
-			fmt.Printf("%d bytes read from V_read\n", bytesRead)
-			fmt.Println(string(result))
+			if bytesRead > 0 {
+				fmt.Printf("%d bytes read from V_read\n", bytesRead)
+				fmt.Println(string(result))
+			}
 		case "recvfile":
 			if len(tokens) != 3 {
 				fmt.Println("invalid args: recvfile [filename] [port] ")
@@ -415,16 +413,43 @@ func main() {
 				fmt.Println("invalid args: window [sockets]")
 			}
 			socketfd, _ := strconv.Atoi(tokens[1])
-			socket, _ := socketmanager.GetSocketByFd(socketfd)
-			fmt.Printf("effective sending window:%d receiver advertise window:%d\n", socket.GetSendingWindow().EffectiveWindowSize(), socket.GetReceiverWindow().AdvertisedWindowSize())
+			socket, err := socketmanager.GetSocketByFd(socketfd)
+			if err != nil {
+				fmt.Println("window error: Bad File Descriptor")
+			} else {
+				fmt.Printf("effective sending window:%d receiver advertise window:%d\n", socket.GetSendingWindow().EffectiveWindowSize(), socket.GetReceiverWindow().AdvertisedWindowSize())
+			}
+		case "shutdown":
+			if len(tokens) != 3 {
+				fmt.Println("invalid args: shutdown [socket] read(r)/write(w)/rw ")
+			}
+			socketfd, _ := strconv.Atoi(tokens[1])
+			var res int
+			if tokens[2] == "read" || tokens[2] == "r" {
+				res = socketmanager.V_shutdown(socketfd, 2)
+			} else if tokens[2] == "write" || tokens[2] == "w" {
+				res = socketmanager.V_shutdown(socketfd, 1)
+			} else if tokens[3] == "rw" {
+				res = socketmanager.V_shutdown(socketfd, 3)
+			}
+			fmt.Println("v_shutdown() return ", res)
+		case "close":
+			if len(tokens) != 2 {
+				fmt.Println("invalid args: close [socket]")
+			}
+			socketFd, _ := strconv.Atoi(tokens[1])
+			res := socketmanager.V_close(socketFd)
+			if res > 0 {
+				fmt.Println("v_close() return ", res)
+			}
 		case "rr":
 			filereceiver := transport.MakeFileReceiver(socketmanager, 9999, "rr")
 			go filereceiver.Recv()
-		case "interfaces":
+		case "interfaces", "li":
 			PrintInterfaces(interfaceTable)
 		case "di":
 			PrintInterfacesall(interfaceTable)
-		case "routes":
+		case "routes", "lr":
 			PrintRoutingtable(table)
 		case "dr":
 			PrintRoutingtableall(table)
@@ -435,8 +460,9 @@ func main() {
 		case "tsm":
 			transport.TestStateMachine()
 		default:
-			PrintHelp()
-
+			if command != "" {
+				PrintHelp()
+			}
 		}
 		fmt.Print("> ")
 	}

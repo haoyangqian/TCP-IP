@@ -15,7 +15,7 @@ type ArrayBasedReceiverSlidingWindow struct {
 	dirties    []bool
 	bufferSize int
 
-	bytesInBuffer int
+	BytesInBuffer int
 
 	Lock *sync.RWMutex
 }
@@ -71,7 +71,7 @@ func (w *ArrayBasedReceiverSlidingWindow) Receive(seqNum int, payload []byte) in
 		//		logging.Printf("Writing byte into pos %d(%d)\n", i+targetPos, (i+targetPos)%w.bufferSize)
 		w.buffer[(i+targetPos)%w.bufferSize] = payload[i]
 		w.dirties[(i+targetPos)%w.bufferSize] = true
-		w.bytesInBuffer += 1
+		w.BytesInBuffer += 1
 	}
 
 	//thirdClock := time.Now().UnixNano()
@@ -126,7 +126,7 @@ func (w *ArrayBasedReceiverSlidingWindow) Read(bytes int) ([]byte, int) {
 	for i := 0; i < bytesToRead; i++ {
 		readBuffer[i] = w.buffer[(i+w.nextByteToRead)%w.bufferSize]
 		w.dirties[(i+w.nextByteToRead)%w.bufferSize] = false
-		w.bytesInBuffer -= 1
+		w.BytesInBuffer -= 1
 	}
 	w.nextByteToRead += bytesToRead
 

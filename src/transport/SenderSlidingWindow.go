@@ -80,7 +80,7 @@ func (w *SenderSlidingWindow) Send() ([]byte, int) {
 	logging.Printf("1 BytesToSend:%d EffectiveWindowSize:%d\n", w.BytesToSend, w.EffectiveWindowSize())
 	//check the length of bytes can be sent
 	EffectiveWindow := w.EffectiveWindowSize()
-	if EffectiveWindow < 0 {
+	if EffectiveWindow < 0 && w.lastAdvertisedWindowSize != 0 {
 		return []byte{}, -2
 	}
 	//logging.Printf("[DEBUG][SendWindow] Send() BytesToSent:%d , EffectiveWindowSize : %d", w.BytesToSend, w.EffectiveWindowSize())

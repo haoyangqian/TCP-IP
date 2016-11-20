@@ -97,23 +97,6 @@ func (manager *SocketManager) GetAvailableInterface(port int) (model.VirtualIp, 
 	return model.VirtualIp{}, errors.New("GetAvailableInterface() error: No available interfaces")
 }
 
-func (manager *SocketManager) UpdateRomoteAddr(socket *TcpSocket, addr model.VirtualIp, port int) {
-	//	newsocket, err := manager.GetSocketByAddr(SocketAddr{socket.Addr.LocalIp, socket.Addr.LocalPort, model.VirtualIp{"0.0.0.0"}, 0})
-	//	if err != nil {
-	//		return
-	//	}
-	//	if newsocket.Fd == socket.Fd {
-	//		delete(manager.socketMapByAddr, socket.Addr)
-	//	}
-	//	socket.SetAddr(SocketAddr{socket.Addr.LocalIp, socket.Addr.LocalPort, addr, port})
-	//	manager.socketMapByAddr[socket.Addr] = socket
-}
-
-func (manager *SocketManager) InsertRomoteAddr(socket *TcpSocket, laddr model.VirtualIp, lport int, raddr model.VirtualIp, rport int) {
-	//	socket.SetAddr(SocketAddr{laddr, lport, raddr, rport})
-	//	manager.socketMapByAddr[socket.Addr] = socket
-}
-
 func (manager *SocketManager) SetSocketAddr(socketfd int, addr SocketAddr) {
 	runner, err := manager.GetRunnerByFd(socketfd)
 	if err != nil {
@@ -195,8 +178,6 @@ func (manager *SocketManager) V_listen(socketfd int) int {
 		manager.V_bind(socket.Fd, model.VirtualIp{}, -1)
 	}
 	socket.StateMachine.Transit(TCP_PASSIVE_OPEN)
-	//listen socket don't need start running
-	//	go runner.Run()
 	return 0
 }
 
@@ -268,35 +249,76 @@ func (manager *SocketManager) V_accept(listenfd int, addr *model.VirtualIp, port
 
 func (manager *SocketManager) V_read(socketFd int, nbyte int) ([]byte, int) {
 	socket, _ := manager.GetSocketByFd(socketFd)
+	if socket.RWstate == ONLY_WRITE || socket.RWstate == NO_RW {
+		fmt.Printf("ERROR! The reading part of this socket has been closed\n")
+		return []byte{}, -1
+	}
 	buff, buffSize := socket.ReadFromBuffer(nbyte)
 
 	return buff, buffSize
 }
 
 func (manager *SocketManager) V_write(socketfd int, buf []byte, nbyte int) int {
-	//put data into buffer
 	//if full, blocking
-	socket, _ := manager.GetSocketByFd(socketfd)
+	socket, err := manager.GetSocketByFd(socketfd)
+	if err != nil {
+		fmt.Println("v_write() error:Bad file descriptor")
+		return -1
+	}
+	if socket.RWstate == ONLY_READ || socket.RWstate == NO_RW {
+		fmt.Printf("ERROR! The writing part of this socket has been closed\n")
+		return -1
+	}
 	size := socket.AddToBuffer(buf, nbyte)
 	//fmt.Printf("v_write() on %d bytes returned %d\n", nbyte, nbyte)
 	logging.Printf("[SocketManager] V_write socketfd:%d write size :%d", socket.Fd, size)
 	return size
 }
 
-func (manager *SocketManager) V_shutdown(socket int, closeType int) int {
+func (manager *SocketManager) V_shutdown(socketfd int, closeType int) int {
+	socket, err := manager.GetSocketByFd(socketfd)
+	if err != nil {
+		fmt.Println("v_shutdown() error:Bad file descriptor")
+		return -1
+	}
+	//close the writing part, send a FIN, but the retransmission part should still work
+	if closeType == 1 {
+		socket.RWstate = ONLY_READ
+	} else if closeType == 2 {
+		socket.RWstate = ONLY_WRITE
+	} else if closeType == 3 {
+		socket.RWstate = NO_RW
+	}
+
 	return 0
 }
 
 func (manager *SocketManager) V_close(socketfd int) int {
-	socket, _ := manager.GetSocketByFd(socketfd)
+	socket, err := manager.GetSocketByFd(socketfd)
+	if err != nil {
+		fmt.Println("v_close() error:Bad file descriptor")
+		return -1
+	}
 	if socket.StateMachine.HasTransition(TCP_CLOSE) {
 		resp, _ := socket.StateMachine.GetResponse(TCP_CLOSE)
 		socket.SendCtrl(resp.GetCtrlFlags(), socket.lastRecvAck, socket.lastSentAck, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
 
 		socket.StateMachine.Transit(TCP_CLOSE)
+		go manager.WaitUntilClose(socket)
 		return 0
 	} else {
 		fmt.Printf("Socket %d does not have a transition for v_close(), current state %s\n", socket.Fd, socket.StateMachine.CurrentState().Name)
 		return -1
+	}
+}
+
+func (manager *SocketManager) WaitUntilClose(socket *TcpSocket) {
+	for {
+		//fmt.Printf("state:%s\n", socket.StateMachine.CurrentState().Name)
+		if socket.StateMachine.CurrentState() == TCP_FINAL_CLOSED {
+			delete(manager.socketMapByFd, socket.Fd)
+			delete(manager.socketMapByAddr, socket.Addr)
+			return
+		}
 	}
 }

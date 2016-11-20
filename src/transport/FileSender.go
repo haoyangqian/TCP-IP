@@ -31,7 +31,10 @@ func MakeFileSender(sm *SocketManager, dstIp model.VirtualIp, dstPort int, filen
 
 func (fs *FileSender) CloseSender() {
 	//close socket
+	res := fs.socketmanager.V_close(fs.socket.Fd)
+	fmt.Printf("v_close() return ", res)
 	//close file
+	//fs.file.Close()
 }
 
 func (fs *FileSender) Send() {
@@ -45,8 +48,8 @@ func (fs *FileSender) Send() {
 	starttime := time.Now().UnixNano()
 	for {
 		//passive_close !!!!!!
-		logging.Printf("[FileSender] : state %s\n buffer size :%d", fs.socket.StateMachine.CurrentState().Name, fs.socket.sendWindow.bufferSize)
-		if fs.socket.StateMachine.CurrentState() == TCP_ESTAB && fs.socket.sendWindow.bufferSize != 0 {
+		logging.Printf("[FileSender] : state %s\n buffer size :%d", fs.socket.StateMachine.CurrentState().Name, fs.socket.SendWindow.bufferSize)
+		if fs.socket.StateMachine.CurrentState() == TCP_ESTAB && fs.socket.SendWindow.bufferSize != 0 {
 			buf := make([]byte, 1024)
 			n, err := fs.file.Read(buf)
 			if err != nil && err != io.EOF {
@@ -64,11 +67,16 @@ func (fs *FileSender) Send() {
 	//send fin
 	//fs.socket.SendCtrl(FIN, fs.socket., acknum, laddr, lport, raddr, rport)
 	//	fs.socket.SendCtrl(FIN|ACK, seqnum, acknum, laddr, lport, raddr, rport)
-	fs.socketmanager.V_close(fs.socket.Fd)
 
+	//	for {
+	//		if fs.socket.SendWindow.BytesToSend == 0 {
+	//			fs.CloseSender()
+	//			break
+	//		}
+	//	}
 	fmt.Printf("sendfile on socket %d done\n", socketFd)
 	fmt.Printf("ENDING SENDFILE\n")
 	endtime := time.Now().UnixNano()
 	fmt.Printf("total time:%d ms, %d s\n", (endtime-starttime)/1000000, (endtime-starttime)/1000000000)
-	fs.CloseSender()
+
 }
