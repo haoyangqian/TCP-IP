@@ -11,6 +11,7 @@ type PacketInFlight struct {
 	ExpireTimeNanos int64
 	Packet          *TcpPacket
 	ExpectedAckNum  int
+	RetransmitTime  int
 }
 
 type SenderSlidingWindow struct {

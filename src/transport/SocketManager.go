@@ -304,7 +304,7 @@ func (manager *SocketManager) V_close(socketfd int) int {
 		socket.SendCtrl(resp.GetCtrlFlags(), socket.lastRecvAck, socket.lastSentAck, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
 
 		socket.StateMachine.Transit(TCP_CLOSE)
-		go manager.WaitUntilClose(socket)
+		//go manager.WaitUntilClose(socket)
 		return 0
 	} else {
 		fmt.Printf("Socket %d does not have a transition for v_close(), current state %s\n", socket.Fd, socket.StateMachine.CurrentState().Name)
@@ -312,13 +312,14 @@ func (manager *SocketManager) V_close(socketfd int) int {
 	}
 }
 
-func (manager *SocketManager) WaitUntilClose(socket *TcpSocket) {
+func (manager *SocketManager) CheckClose() {
 	for {
-		//fmt.Printf("state:%s\n", socket.StateMachine.CurrentState().Name)
-		if socket.StateMachine.CurrentState() == TCP_FINAL_CLOSED {
-			delete(manager.socketMapByFd, socket.Fd)
-			delete(manager.socketMapByAddr, socket.Addr)
-			return
+		for _, socketrunner := range manager.socketMapByFd {
+			socket := socketrunner.Socket
+			if socket.StateMachine.CurrentState() == TCP_FINAL_CLOSED {
+				delete(manager.socketMapByFd, socket.Fd)
+				delete(manager.socketMapByAddr, socket.Addr)
+			}
 		}
 	}
 }

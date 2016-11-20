@@ -158,6 +158,9 @@ func (m *TcpStateMachine) CurrentState() TcpState {
 	return m.currentState
 }
 
+func (m *TcpStateMachine) SetState(state TcpState) {
+	m.currentState = state
+}
 func (m *TcpStateMachine) RetryCount() int {
 	return m.retryCount
 }

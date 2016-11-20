@@ -32,9 +32,9 @@ func MakeFileSender(sm *SocketManager, dstIp model.VirtualIp, dstPort int, filen
 func (fs *FileSender) CloseSender() {
 	//close socket
 	res := fs.socketmanager.V_close(fs.socket.Fd)
-	fmt.Printf("v_close() return ", res)
+	fmt.Printf("v_close() return %d\n", res)
 	//close file
-	//fs.file.Close()
+	fs.file.Close()
 }
 
 func (fs *FileSender) Send() {
@@ -67,16 +67,17 @@ func (fs *FileSender) Send() {
 	//send fin
 	//fs.socket.SendCtrl(FIN, fs.socket., acknum, laddr, lport, raddr, rport)
 	//	fs.socket.SendCtrl(FIN|ACK, seqnum, acknum, laddr, lport, raddr, rport)
-
-	//	for {
-	//		if fs.socket.SendWindow.BytesToSend == 0 {
-	//			fs.CloseSender()
-	//			break
-	//		}
-	//	}
 	fmt.Printf("sendfile on socket %d done\n", socketFd)
 	fmt.Printf("ENDING SENDFILE\n")
 	endtime := time.Now().UnixNano()
 	fmt.Printf("total time:%d ms, %d s\n", (endtime-starttime)/1000000, (endtime-starttime)/1000000000)
+	//  little bug when close the
+	for {
+		//fmt.Println("heap length: ", fs.socket.packetsQueue.Len())
+		if fs.socket.packetsQueue.Len() == 0 && fs.socket.SendWindow.BytesToSend == 0 {
+			fs.CloseSender()
+			break
+		}
+	}
 
 }

@@ -2,6 +2,7 @@ package transport
 
 import (
 	"container/heap"
+	"fmt"
 	"logging"
 	"model"
 	"time"
@@ -15,6 +16,7 @@ const (
 	ONLY_READ      = 1
 	ONLY_WRITE     = 2
 	NO_RW          = 3
+	MAX_RETRANSMIT = 3
 )
 
 type TcpSocket struct {
@@ -35,13 +37,10 @@ type TcpSocket struct {
 }
 
 func MakeSocket(fd int, fsm TcpStateMachine, ch chan<- model.SendMessageRequest) TcpSocket {
-	//	buffer := make([]byte, MAX_SENDER_BUFFER_SIZE)
-	//	RecvWindow := MakeReceiverSlidingWindow(MAX_SENDER_BUFFER_SIZE)
 	pq := make(PriorityQueue, 0)
 	return TcpSocket{
-		Fd:   fd,
-		Addr: SocketAddr{model.VirtualIp{"0.0.0.0"}, 0, model.VirtualIp{"0.0.0.0"}, 0},
-		//		Buffer:       buffer,
+		Fd:              fd,
+		Addr:            SocketAddr{model.VirtualIp{"0.0.0.0"}, 0, model.VirtualIp{"0.0.0.0"}, 0},
 		StateMachine:    fsm,
 		SendToIpCh:      ch,
 		RWstate:         BOTH_RW,
@@ -106,8 +105,7 @@ func (socket *TcpSocket) SendData(seqnum int, acknum int, payload []byte) (*TcpP
 func (socket *TcpSocket) Send() {
 	//go socket.Retransmit()
 	for {
-		for socket.packetsQueue.Len() != 0 && socket.MaxAckNumRecved != -1 {
-			//logging.Printf("[TcpSocket] Send() socket packetsQueue has at least 1 packet\n")
+		for socket.packetsQueue.Len() != 0 {
 			//retrieve the top element
 			item := heap.Pop(&socket.packetsQueue).(*PacketInFlight)
 			logging.Printf("[TcpSocket] pq length : %d top ExpectedAckNum:%d MaxAckNumRecved:%d\n", socket.packetsQueue.Len(), item.ExpectedAckNum, socket.MaxAckNumRecved)
@@ -119,8 +117,15 @@ func (socket *TcpSocket) Send() {
 			} else {
 				//if timeout, retransmit
 				if item.ExpireTimeNanos+MAX_WATINGTIME < time.Now().UnixNano() {
+					if item.RetransmitTime <= 0 {
+						//up to max retransmit time, close
+						fmt.Println("v_write() error: Connection reset by peer")
+						socket.StateMachine.SetState(TCP_FINAL_CLOSED)
+						return
+					}
 					tcppacket := item.Packet
 					socket.SendData(tcppacket.Tcpheader.SeqNum, tcppacket.Tcpheader.AckNum, tcppacket.Payload)
+					item.RetransmitTime = item.RetransmitTime - 1
 					logging.Printf("[TcpSocket] Send() retransmition, seqnum:%d acknum:%d", tcppacket.Tcpheader.SeqNum, tcppacket.Tcpheader.AckNum)
 					item.ExpireTimeNanos = time.Now().UnixNano()
 				}
@@ -145,6 +150,7 @@ func (socket *TcpSocket) Send() {
 				ExpireTimeNanos: time.Now().UnixNano(),
 				Packet:          tcppacket,
 				ExpectedAckNum:  tcppacket.Tcpheader.SeqNum + len(tcppacket.Payload),
+				RetransmitTime:  MAX_RETRANSMIT,
 			}
 			heap.Push(&socket.packetsQueue, &packetinflight)
 			//logging.Printf("[TcpSocket] Send() push to pq time:%d, ExpectedAckNum:%d\n", packetinflight.ExpireTimeNanos, packetinflight.ExpectedAckNum)

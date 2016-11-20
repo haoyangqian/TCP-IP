@@ -239,7 +239,7 @@ func main() {
 	ripRunner := factory.RipRunner()
 
 	socketmanager := factory.SocketManager()
-
+	go socketmanager.CheckClose()
 	var wg sync.WaitGroup
 	wg.Add(4)
 	go networkRunner.Run()
