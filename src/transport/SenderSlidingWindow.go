@@ -2,7 +2,7 @@ package transport
 
 import (
 	//"fmt"
-	"logging"
+	//"logging"
 	"sync"
 )
 
@@ -78,7 +78,7 @@ func (w *SenderSlidingWindow) Send() ([]byte, int) {
 		//logging.Printf("[SendWindow] No Bytes to send\n")
 		return []byte{}, -1
 	}
-	logging.Printf("1 BytesToSend:%d EffectiveWindowSize:%d\n", w.BytesToSend, w.EffectiveWindowSize())
+	//logging.Printf("1 BytesToSend:%d EffectiveWindowSize:%d\n", w.BytesToSend, w.EffectiveWindowSize())
 	//check the length of bytes can be sent
 	EffectiveWindow := w.EffectiveWindowSize()
 	if EffectiveWindow < 0 && w.lastAdvertisedWindowSize != 0 {
@@ -86,7 +86,7 @@ func (w *SenderSlidingWindow) Send() ([]byte, int) {
 	}
 	//logging.Printf("[DEBUG][SendWindow] Send() BytesToSent:%d , EffectiveWindowSize : %d", w.BytesToSend, w.EffectiveWindowSize())
 	sendsize := EffectiveWindow
-	logging.Printf("2 sendsize:%d BytesToSend:%d EffectiveWindowSize:%d\n", sendsize, w.BytesToSend, w.EffectiveWindowSize())
+	//logging.Printf("2 sendsize:%d BytesToSend:%d EffectiveWindowSize:%d\n", sendsize, w.BytesToSend, w.EffectiveWindowSize())
 	if w.BytesToSend < EffectiveWindow {
 		sendsize = w.BytesToSend
 	}
@@ -100,7 +100,7 @@ func (w *SenderSlidingWindow) Send() ([]byte, int) {
 		sendsize = 1
 	}
 	//send bytes
-	logging.Printf("3 sendsize:%d BytesToSend:%d EffectiveWindowSize:%d\n", sendsize, w.BytesToSend, w.EffectiveWindowSize())
+	//logging.Printf("3 sendsize:%d BytesToSend:%d EffectiveWindowSize:%d\n", sendsize, w.BytesToSend, w.EffectiveWindowSize())
 	buffer := make([]byte, sendsize)
 
 	returnseqnum := w.returnSeqNum
@@ -112,7 +112,7 @@ func (w *SenderSlidingWindow) Send() ([]byte, int) {
 		buffer[i] = w.buffer[w.lastByteSent]
 	}
 	w.BytesToSend -= len(buffer)
-	logging.Printf("[DEBUG][SendWindow] Send() BytesToSend:%d\n", w.BytesToSend)
+	//logging.Printf("[DEBUG][SendWindow] Send() BytesToSend:%d\n", w.BytesToSend)
 	w.returnSeqNum += sendsize
 	return buffer, returnseqnum
 }
@@ -126,7 +126,7 @@ func (w *SenderSlidingWindow) Write(buff []byte, nbytes int) int {
 	} else {
 		writelength = writespace
 	}
-	logging.Printf("[DEBUG][SendWindow] Write() lenofbuff:%d nbytes:%d writespace:%d\n", len(buff), nbytes, writespace)
+	//logging.Printf("[DEBUG][SendWindow] Write() lenofbuff:%d nbytes:%d writespace:%d\n", len(buff), nbytes, writespace)
 	w.Lock.Lock()
 	for i := 0; i < writelength; i++ {
 		w.lastByteWritten = w.lastByteWritten + 1

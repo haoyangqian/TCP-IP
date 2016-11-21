@@ -108,7 +108,7 @@ func (socket *TcpSocket) Send() {
 		for socket.packetsQueue.Len() != 0 {
 			//retrieve the top element
 			item := heap.Pop(&socket.packetsQueue).(*PacketInFlight)
-			logging.Printf("[TcpSocket] pq length : %d top ExpectedAckNum:%d MaxAckNumRecved:%d\n", socket.packetsQueue.Len(), item.ExpectedAckNum, socket.MaxAckNumRecved)
+			//logging.Printf("[TcpSocket] pq length : %d top ExpectedAckNum:%d MaxAckNumRecved:%d\n", socket.packetsQueue.Len(), item.ExpectedAckNum, socket.MaxAckNumRecved)
 			if item.ExpectedAckNum <= socket.MaxAckNumRecved {
 				//logging.Printf("[TcpSocket] Send() discarding a packet in flight, a larger ACK has already been received\n")
 				socket.SendWindow.UpdateBytesInFlight(socket.SendWindow.BytesInFlight - len(item.Packet.Payload))
@@ -126,7 +126,7 @@ func (socket *TcpSocket) Send() {
 					tcppacket := item.Packet
 					socket.SendData(tcppacket.Tcpheader.SeqNum, tcppacket.Tcpheader.AckNum, tcppacket.Payload)
 					item.RetransmitTime = item.RetransmitTime - 1
-					logging.Printf("[TcpSocket] Send() retransmition, seqnum:%d acknum:%d", tcppacket.Tcpheader.SeqNum, tcppacket.Tcpheader.AckNum)
+					//logging.Printf("[TcpSocket] Send() retransmition, seqnum:%d acknum:%d", tcppacket.Tcpheader.SeqNum, tcppacket.Tcpheader.AckNum)
 					item.ExpireTimeNanos = time.Now().UnixNano()
 				}
 				//logging.Printf("[TcpSocket] Send() nothing expired, looooooooooop yooooo")
@@ -139,7 +139,7 @@ func (socket *TcpSocket) Send() {
 		buffer, seqnum := socket.SendWindow.Send()
 		//logging.Printf("[TcpSocket] Send() send buffer:%d, seqnum:%d\n", len(buffer), seqnum)
 		if seqnum > 0 && len(buffer) > 0 {
-			logging.Printf("[TcpSocket] Send() send buffer:%d, seqnum:%d\n", len(buffer), seqnum)
+			//logging.Printf("[TcpSocket] Send() send buffer:%d, seqnum:%d\n", len(buffer), seqnum)
 			//logging.Printf("[TcpSocket] Send() send buffer:%s len : %d seqnum:%d\n", string(buffer), len(buffer), seqnum)
 
 			tcppacket, _ := socket.SendData(seqnum, socket.dataSentAck, buffer)
@@ -168,9 +168,10 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 	//fmt.Println(tcppacket.TcpPacketString())
 	if socket.StateMachine.CurrentState() != TCP_ESTAB {
 		if tcppacket.Tcpheader.HasFlag(ACK) {
+			logging.Printf("[TcpSocket] recv ACK -- seqnum: %d  acknum: %d ctrl:%d\n", tcppacket.Tcpheader.SeqNum, tcppacket.Tcpheader.AckNum, tcppacket.Tcpheader.Ctrl)
 			if tcppacket.Tcpheader.AckNum != socket.SeqNum+1 {
 				logging.Printf("[TcpSocket] Mismatch AckNum -- acknum:%d, seqnum:%d\n", tcppacket.Tcpheader.AckNum, socket.SeqNum)
-				return
+				//return
 			}
 		}
 	} else if payloadSize == 0 {
@@ -182,6 +183,9 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 			if tcppacket.Tcpheader.AckNum > socket.MaxAckNumRecved {
 				socket.MaxAckNumRecved = tcppacket.Tcpheader.AckNum
 			}
+		}
+		if tcppacket.Tcpheader.HasFlag(FIN) {
+
 		}
 	}
 
@@ -237,7 +241,7 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 	}
 
 	if payloadSize > 0 && (socket.StateMachine.CurrentState() == TCP_ESTAB || socket.StateMachine.CurrentState().IsActiveClose) {
-		logging.Printf("[TcpSocket] %d receiving data packet", socket.Fd)
+		//logging.Printf("[TcpSocket] %d receiving data packet", socket.Fd)
 
 		ack := socket.RecvWindow.Receive(tcppacket.Tcpheader.SeqNum, tcppacket.Payload)
 		if ack > 0 {
