@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"logging"
+	//"logging"
 	"model"
 	"os"
 	"time"
@@ -48,7 +48,7 @@ func (fs *FileSender) Send() {
 	starttime := time.Now().UnixNano()
 	for {
 		//passive_close !!!!!!
-		logging.Printf("[FileSender] : state %s\n buffer size :%d", fs.socket.StateMachine.CurrentState().Name, fs.socket.SendWindow.bufferSize)
+		//logging.Printf("[FileSender] : state %s\n buffer size :%d", fs.socket.StateMachine.CurrentState().Name, fs.socket.SendWindow.bufferSize)
 		if fs.socket.StateMachine.CurrentState() == TCP_ESTAB && fs.socket.SendWindow.bufferSize != 0 {
 			buf := make([]byte, 1024)
 			n, err := fs.file.Read(buf)
@@ -60,7 +60,7 @@ func (fs *FileSender) Send() {
 			}
 			size := fs.socketmanager.V_write(socketFd, buf, n)
 			if size != 0 {
-				logging.Printf("[FileSender] v_write success! size : %d\n", size)
+				//logging.Printf("[FileSender] v_write success! size : %d\n", size)
 			}
 		}
 	}

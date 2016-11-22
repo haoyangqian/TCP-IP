@@ -249,7 +249,7 @@ func (manager *SocketManager) V_accept(listenfd int, addr *model.VirtualIp, port
 
 func (manager *SocketManager) V_read(socketFd int, nbyte int) ([]byte, int) {
 	socket, _ := manager.GetSocketByFd(socketFd)
-	if socket.RWstate == ONLY_WRITE || socket.RWstate == NO_RW {
+	if socket.ReadState == false {
 		fmt.Printf("ERROR! The reading part of this socket has been closed\n")
 		return []byte{}, -1
 	}
@@ -265,7 +265,7 @@ func (manager *SocketManager) V_write(socketfd int, buf []byte, nbyte int) int {
 		fmt.Println("v_write() error:Bad file descriptor")
 		return -1
 	}
-	if socket.RWstate == ONLY_READ || socket.RWstate == NO_RW {
+	if socket.WriteState == false {
 		fmt.Printf("ERROR! The writing part of this socket has been closed\n")
 		return -1
 	}
@@ -276,31 +276,25 @@ func (manager *SocketManager) V_write(socketfd int, buf []byte, nbyte int) int {
 }
 
 func (manager *SocketManager) V_shutdown(socketfd int, closeType int) int {
-	socket, err := manager.GetSocketByFd(socketfd)
-	if err != nil {
-		fmt.Println("v_shutdown() error:Bad file descriptor")
-		return -1
-	}
 	//close the writing part, send a FIN, but the retransmission part should still work
 	if closeType == 1 {
-		socket.RWstate = ONLY_READ
-		manager.V_close(socketfd)
+		manager.ShutdownWrite(socketfd)
 	} else if closeType == 2 {
-		socket.RWstate = ONLY_WRITE
+		manager.ShutdownRead(socketfd)
 	} else if closeType == 3 {
-		socket.RWstate = NO_RW
 		manager.V_close(socketfd)
 	}
 
 	return 0
 }
 
-func (manager *SocketManager) V_close(socketfd int) int {
+func (manager *SocketManager) ShutdownWrite(socketfd int) int {
 	socket, err := manager.GetSocketByFd(socketfd)
 	if err != nil {
-		fmt.Println("v_close() error:Bad file descriptor")
+		fmt.Println("v_shutdown() error:Bad file descriptor")
 		return -1
 	}
+	socket.WriteState = false
 	if socket.StateMachine.HasTransition(TCP_CLOSE) {
 		resp, _ := socket.StateMachine.GetResponse(TCP_CLOSE)
 		socket.SendCtrl(resp.GetCtrlFlags(), socket.lastRecvAck, socket.lastSentAck, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
@@ -312,6 +306,22 @@ func (manager *SocketManager) V_close(socketfd int) int {
 		fmt.Printf("Socket %d does not have a transition for v_close(), current state %s\n", socket.Fd, socket.StateMachine.CurrentState().Name)
 		return -1
 	}
+}
+
+func (manager *SocketManager) ShutdownRead(socketfd int) int {
+	socket, err := manager.GetSocketByFd(socketfd)
+	if err != nil {
+		fmt.Println("v_shutdown() error:Bad file descriptor")
+		return -1
+	}
+	socket.ReadState = false
+	return 0
+}
+
+func (manager *SocketManager) V_close(socketfd int) int {
+	manager.ShutdownRead(socketfd)
+	manager.ShutdownWrite(socketfd)
+	return 0
 }
 
 func (manager *SocketManager) CheckClose() {

@@ -12,11 +12,7 @@ const (
 	MAX_WINDOWSIZE = 65535
 	MAX_WATINGTIME = 250 * 1000 * 1000 // 250ms
 	MAX_PAYLOAD    = 1024
-	BOTH_RW        = 0
-	ONLY_READ      = 1
-	ONLY_WRITE     = 2
-	NO_RW          = 3
-	MAX_RETRANSMIT = 5
+	MAX_RETRANSMIT = 3
 )
 
 type TcpSocket struct {
@@ -25,7 +21,8 @@ type TcpSocket struct {
 	SeqNum          int
 	StateMachine    TcpStateMachine
 	SendToIpCh      chan<- model.SendMessageRequest
-	RWstate         int
+	ReadState       bool
+	WriteState      bool
 	lastSentSeq     int
 	lastSentAck     int
 	lastRecvAck     int
@@ -43,7 +40,8 @@ func MakeSocket(fd int, fsm TcpStateMachine, ch chan<- model.SendMessageRequest)
 		Addr:            SocketAddr{model.VirtualIp{"0.0.0.0"}, 0, model.VirtualIp{"0.0.0.0"}, 0},
 		StateMachine:    fsm,
 		SendToIpCh:      ch,
-		RWstate:         BOTH_RW,
+		ReadState:       true,
+		WriteState:      true,
 		packetsQueue:    pq,
 		MaxAckNumRecved: -1,
 		RecvWindow:      MakeArrayBasedReceiverSlidingWindow(MAX_WINDOWSIZE),
@@ -174,6 +172,9 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 				//return
 			}
 		}
+		if tcppacket.Tcpheader.HasFlag(FIN) {
+			logging.Printf("[TcpSocket] recv FIN -- seqnum: %d  acknum: %d\n", tcppacket.Tcpheader.SeqNum, tcppacket.Tcpheader.AckNum)
+		}
 	} else if payloadSize == 0 {
 		//logging.Printf("[TcpSocket] recv ctrl()--ctrl:%b,laddr:%s,lport,%d,raddr:%s,rport:%d\n", tcppacket.Tcpheader.Ctrl, packet.Ipheader.Dst, tcppacket.Tcpheader.Destination, packet.Ipheader.Src, tcppacket.Tcpheader.Source)
 		socket.SendWindow.UpdateLastAdvertisedWindow(tcppacket.Tcpheader.Window)
@@ -185,7 +186,7 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 			}
 		}
 		if tcppacket.Tcpheader.HasFlag(FIN) {
-
+			logging.Printf("[TcpSocket] recv FIN -- seqnum: %d  acknum: %d\n", tcppacket.Tcpheader.SeqNum, tcppacket.Tcpheader.AckNum)
 		}
 	}
 
@@ -242,10 +243,13 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 
 	if payloadSize > 0 && (socket.StateMachine.CurrentState() == TCP_ESTAB || socket.StateMachine.CurrentState().IsActiveClose) {
 		//logging.Printf("[TcpSocket] %d receiving data packet", socket.Fd)
-
-		ack := socket.RecvWindow.Receive(tcppacket.Tcpheader.SeqNum, tcppacket.Payload)
-		if ack > 0 {
-			go socket.SendCtrl(ACK, tcppacket.Tcpheader.AckNum, ack, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
+		if socket.ReadState {
+			ack := socket.RecvWindow.Receive(tcppacket.Tcpheader.SeqNum, tcppacket.Payload)
+			if ack > 0 {
+				go socket.SendCtrl(ACK, tcppacket.Tcpheader.AckNum, ack, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
+			}
+		} else { // if the read has been shutdown, just return ack
+			go socket.SendCtrl(ACK, tcppacket.Tcpheader.AckNum, tcppacket.Tcpheader.SeqNum+len(tcppacket.Payload), socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
 		}
 	}
 }

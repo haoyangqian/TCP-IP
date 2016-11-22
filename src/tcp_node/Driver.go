@@ -441,7 +441,7 @@ func main() {
 			}
 			socketFd, _ := strconv.Atoi(tokens[1])
 			res := socketmanager.V_close(socketFd)
-			if res > 0 {
+			if res >= 0 {
 				fmt.Println("v_close() return ", res)
 			}
 		case "rr":
