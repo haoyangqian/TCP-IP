@@ -1,0 +1,190 @@
+Packet trace is obtained by sending a randomly-generated 1mb file from our implementatino to the reference node.
+In the following logs, 9999 (port number) represents the receiving end and 1024 represents our (sending) end.
+A lossy node sits between the sender and receiver with a drop rate of 2%
+
+*********************************************************
+[Trace] 09605256128 SEQ: 573189403, ACK: 0, 1024 to 9999, window: 65535, payload: 0, ctrlFlag: 10
+    // first handshake
+
+[Trace] 09606125482 SEQ: 35553, ACK: 573189404, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10010
+    // first handshake reply
+
+[Trace] 09611197742 SEQ: 573189404, ACK: 35554, 1024 to 9999, window: 65535, payload: 0, ctrlFlag: 10000
+    // handshake initilaized
+
+
+[Trace] 09611282750 SEQ: 573189404, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09611370826 SEQ: 573190428, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09611468969 SEQ: 573191452, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09611538608 SEQ: 573192476, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09611612610 SEQ: 573193500, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09611707150 SEQ: 573194524, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09611771650 SEQ: 573195548, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09611843756 SEQ: 573196572, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09611939253 SEQ: 573197596, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09612013696 SEQ: 573198620, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+    // first bursts of data packets
+
+[Trace] 09612113264 SEQ: 35554, ACK: 573191452, 9999 to 1024, window: 64511, payload: 0, ctrlFlag: 10000
+    // first ACK reploy
+
+[Trace] 09612147814 SEQ: 573199644, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09612242068 SEQ: 573200668, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09612308926 SEQ: 573201692, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09612375782 SEQ: 573202716, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09612467955 SEQ: 573203740, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09612541243 SEQ: 573204764, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09612611100 SEQ: 573205788, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09612700926 SEQ: 573206812, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09612986789 SEQ: 573207836, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09613064106 SEQ: 573208860, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09617752692 SEQ: 573209884, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09617762123 SEQ: 573210908, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09617789616 SEQ: 573211932, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09617808822 SEQ: 573212956, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09617814542 SEQ: 573213980, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09617833424 SEQ: 573215004, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09617856518 SEQ: 573216028, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09617862535 SEQ: 573217052, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09617882964 SEQ: 573218076, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09617904288 SEQ: 573219100, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09617910014 SEQ: 573220124, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09617924295 SEQ: 573221148, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09617968444 SEQ: 573222172, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09618421674 SEQ: 573223196, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09629934544 SEQ: 573224220, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09629947634 SEQ: 573225244, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09629989386 SEQ: 573226268, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630035913 SEQ: 573227292, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630042181 SEQ: 573228316, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630074758 SEQ: 573229340, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630117149 SEQ: 573230364, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630123119 SEQ: 573231388, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630153635 SEQ: 573232412, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630195063 SEQ: 573233436, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630200980 SEQ: 573234460, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630230978 SEQ: 573235484, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630274865 SEQ: 573236508, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630280639 SEQ: 573237532, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630310638 SEQ: 573238556, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630351506 SEQ: 573239580, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630357276 SEQ: 573240604, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630386878 SEQ: 573241628, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630436048 SEQ: 573242652, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630441991 SEQ: 573243676, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630470357 SEQ: 573244700, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630512363 SEQ: 573245724, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630518112 SEQ: 573246748, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630544730 SEQ: 573247772, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630586787 SEQ: 573248796, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630593120 SEQ: 573249820, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630621062 SEQ: 573250844, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630660919 SEQ: 573251868, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630669003 SEQ: 573252892, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630696871 SEQ: 573253916, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09630735714 SEQ: 573254940, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1023, ctrlFlag: 0
+    // another bursts of data packets
+    // notice that the last packet contains only 1023 bytes of data, since the send buffer was full at 1023 bytes in the last packet
+    // followed by all the ACKs from the receiver
+
+[Trace] 09633859581 SEQ: 35554, ACK: 573192476, 9999 to 1024, window: 64511, payload: 0, ctrlFlag: 10000
+[Trace] 09633868519 SEQ: 35554, ACK: 573192476, 9999 to 1024, window: 64511, payload: 0, ctrlFlag: 10000
+[Trace] 09633900898 SEQ: 35554, ACK: 573192476, 9999 to 1024, window: 64511, payload: 0, ctrlFlag: 10000
+[Trace] 09633941197 SEQ: 35554, ACK: 573192476, 9999 to 1024, window: 64511, payload: 0, ctrlFlag: 10000
+[Trace] 09633947189 SEQ: 35554, ACK: 573192476, 9999 to 1024, window: 64511, payload: 0, ctrlFlag: 10000
+[Trace] 09633974885 SEQ: 35554, ACK: 573193500, 9999 to 1024, window: 64511, payload: 0, ctrlFlag: 10000
+
+        ... Log Ommitted, transmission continues ...
+
+
+[Trace] 09677735376 SEQ: 573277467, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09677741354 SEQ: 573278491, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+    // first time transmitting packet 573278491, packet was persumably dropped by the lossy node
+
+[Trace] 09677773010 SEQ: 573279515, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09677818181 SEQ: 573280539, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09677825224 SEQ: 573281563, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+
+        ... Log Ommited for clarity ...
+
+
+[Trace] 09870335651 SEQ: 573253916, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09870358181 SEQ: 573254940, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1023, ctrlFlag: 0
+[Trace] 09870388624 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 15360, payload: 0, ctrlFlag: 10000
+[Trace] 09870394772 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 15360, payload: 0, ctrlFlag: 10000
+[Trace] 09870419308 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 15360, payload: 0, ctrlFlag: 10000
+[Trace] 09870453469 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 15360, payload: 0, ctrlFlag: 10000
+[Trace] 09870459628 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 17408, payload: 0, ctrlFlag: 10000
+[Trace] 09870489597 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09886574180 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09886590231 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09886622890 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09886732466 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09886740529 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09886766117 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09886795866 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09886801909 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09886842545 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09886873119 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09886879121 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09886911351 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09886942523 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09886948436 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09887002089 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09887034795 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09887050408 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09887073931 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09887103808 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09887109724 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+    // receiver expects 573278491
+
+[Trace] 09908192548 SEQ: 573255963, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09908207166 SEQ: 573256987, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09908254822 SEQ: 573258011, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09908384602 SEQ: 573259035, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09908623502 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09908633623 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09908660062 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09908751791 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09908800222 SEQ: 573260059, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09908931245 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09908977927 SEQ: 573261083, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09908984716 SEQ: 573262107, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09909041480 SEQ: 573263131, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09909414990 SEQ: 573264155, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09914003155 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09914030602 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09914180935 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09914227462 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09947886815 SEQ: 573265179, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09947906389 SEQ: 573266203, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09947942537 SEQ: 573267227, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09953625070 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09953678572 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 09953690234 SEQ: 35554, ACK: 573278491, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+    // receiver continues to expect packet 573278491
+
+[Trace] 09953787302 SEQ: 573278491, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+    // retransmission of 573293851
+    // retransmitting packets below too since we have not received an ACK that is larger than their sequence numbers
+
+[Trace] 09953794412 SEQ: 573293851, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09953821674 SEQ: 573279515, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 09953855446 SEQ: 573294875, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+[Trace] 12065572864 SEQ: 574020891, ACK: 573189404, 1024 to 9999, window: 65535, payload: 1024, ctrlFlag: 0
+
+        ... Log Ommitted, similar trend continues  ...
+
+[Trace] 12922184105 SEQ: 35554, ACK: 574237980, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 12922191199 SEQ: 35554, ACK: 574237980, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 12922218118 SEQ: 35554, ACK: 574237980, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 12922248798 SEQ: 35554, ACK: 574237980, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 12922254705 SEQ: 35554, ACK: 574237980, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+[Trace] 13418029706 SEQ: 574237980, ACK: 573189404, 1024 to 9999, window: 65535, payload: 0, ctrlFlag: 1
+    // FIN sent
+[Trace] 13418286544 SEQ: 35554, ACK: 574237981, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10000
+    // ACK of FIN received
+[Trace] 13418295146 SEQ: 35554, ACK: 574237981, 9999 to 1024, window: 65535, payload: 0, ctrlFlag: 10001
+    // FIN received
+[Trace] 13418441501 SEQ: 574237981, ACK: 35555, 1024 to 9999, window: 65535, payload: 0, ctrlFlag: 10000
+    // ACK of FIN sent

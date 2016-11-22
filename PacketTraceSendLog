@@ -1,0 +1,101 @@
+Packet trace is obtained by sending a randomly-generated 1mb file from the reference implementation to ours.
+In the following logs, 9999 (port number) represents the receiving end and 1024 represents the reference node.
+A lossy node sits between the sender and receiver with a drop rate of 2%
+
+17:34:53 *********************************************************
+[Trace] 10492211979 SEQ: 22603, ACK: 0, 1024 to 9999, w: 65535, p: 0, ctrlFlag: 10
+    // initialize handshake
+
+[Trace] 10496261520 SEQ: 2082658115, ACK: 22604, 9999 to 1024, w: 65535, p: 0, ctrlFlag: 10010
+    // handshak reply
+
+[Trace] 10496473787 SEQ: 22604, ACK: 2082658116, 1024 to 9999, w: 65535, p: 0, ctrlFlag: 10000
+    // complete handshake
+
+[Trace] 10501612650 SEQ: 22604, ACK: 2082658116, 1024 to 9999, w: 65535, p: 1024, ctrlFlag: 10000
+    // first data segment
+
+[Trace] 10505673705 SEQ: 2082658116, ACK: 23628, 9999 to 1024, w: 64511, p: 0, ctrlFlag: 10000
+    // first data ACK, window size is deducted accordingly
+
+[Trace] 10505794740 SEQ: 23628, ACK: 2082658116, 1024 to 9999, w: 65535, p: 1024, ctrlFlag: 10000
+    // continue to send data...
+
+[Trace] 10509808181 SEQ: 2082658116, ACK: 24652, 9999 to 1024, w: 65535, p: 0, ctrlFlag: 10000
+[Trace] 10509936455 SEQ: 24652, ACK: 2082658116, 1024 to 9999, w: 65535, p: 1024, ctrlFlag: 10000
+[Trace] 10512873482 SEQ: 2082658116, ACK: 25676, 9999 to 1024, w: 64511, p: 0, ctrlFlag: 10000
+[Trace] 10513020208 SEQ: 25676, ACK: 2082658116, 1024 to 9999, w: 65535, p: 1024, ctrlFlag: 10000
+
+
+                ... Log Ommitted, no out-of-order or drop transmission occured ...
+
+
+[Trace] 12925605491 SEQ: 298060, ACK: 2082658116, 1024 to 9999, w: 65535, p: 1024, ctrlFlag: 10000
+[Trace] 12925698009 SEQ: 2082658116, ACK: 299084, 9999 to 1024, w: 64511, p: 0, ctrlFlag: 10000
+[Trace] 12925881533 SEQ: 299084, ACK: 2082658116, 1024 to 9999, w: 65535, p: 334, ctrlFlag: 10000
+    // sender starts congestion control
+
+[Trace] 12925888566 SEQ: 299418, ACK: 2082658116, 1024 to 9999, w: 65535, p: 690, ctrlFlag: 10000
+[Trace] 12926248832 SEQ: 2082658116, ACK: 300108, 9999 to 1024, w: 64511, p: 0, ctrlFlag: 10000
+    // ACK replied
+
+[Trace] 12926256336 SEQ: 2082658116, ACK: 299084, 9999 to 1024, w: 64511, p: 0, ctrlFlag: 10000
+    // ACK replied, notice ACK replies were actually out of order this time since they are replied asynchornously
+
+[Trace] 12926456945 SEQ: 300108, ACK: 2082658116, 1024 to 9999, w: 65535, p: 336, ctrlFlag: 10000
+[Trace] 12926463719 SEQ: 300444, ACK: 2082658116, 1024 to 9999, w: 65535, p: 688, ctrlFlag: 10000
+[Trace] 12926546634 SEQ: 2082658116, ACK: 300108, 9999 to 1024, w: 65535, p: 0, ctrlFlag: 10000
+[Trace] 12926582942 SEQ: 2082658116, ACK: 301132, 9999 to 1024, w: 64511, p: 0, ctrlFlag: 10000
+[Trace] 12949679966 SEQ: 301132, ACK: 2082658116, 1024 to 9999, w: 65535, p: 340, ctrlFlag: 10000
+[Trace] 12957869523 SEQ: 301472, ACK: 2082658116, 1024 to 9999, w: 65535, p: 684, ctrlFlag: 10000
+
+                ... Log Ommitted, similar trend continues  ...
+
+
+[Trace] 13195197489 SEQ: 322494, ACK: 2082658116, 1024 to 9999, w: 65535, p: 1356, ctrlFlag: 10000
+[Trace] 13195204822 SEQ: 323850, ACK: 2082658116, 1024 to 9999, w: 65535, p: 44, ctrlFlag: 10000
+[Trace] 13195309613 SEQ: 2082658116, ACK: 322494, 9999 to 1024, w: 65535, p: 0, ctrlFlag: 10000
+[Trace] 13195333901 SEQ: 2082658116, ACK: 323894, 9999 to 1024, w: 64135, p: 0, ctrlFlag: 10000
+    // ACK of 323894 expected here
+
+[Trace] 13337642603 SEQ: 322494, ACK: 2082658116, 1024 to 9999, w: 65535, p: 1356, ctrlFlag: 10000
+    // next received SEQ isn't 323894, out of order receive
+
+[Trace] 13338003518 SEQ: 2082658116, ACK: 323894, 9999 to 1024, w: 65535, p: 0, ctrlFlag: 10000
+    // reply again with 323894 as the ACK number since we are still expecting that packet
+
+[Trace] 13338200592 SEQ: 323894, ACK: 2082658116, 1024 to 9999, w: 65535, p: 1356, ctrlFlag: 10000
+[Trace] 13338209340 SEQ: 325250, ACK: 2082658116, 1024 to 9999, w: 65535, p: 4, ctrlFlag: 10000
+[Trace] 13338816839 SEQ: 2082658116, ACK: 323894, 9999 to 1024, w: 65535, p: 0, ctrlFlag: 10000
+    // still expecting 323894 as 325250 came in with 4 bytes of data
+
+[Trace] 13338862658 SEQ: 2082658116, ACK: 325254, 9999 to 1024, w: 64175, p: 0, ctrlFlag: 10000
+    // 323894(1356 bytes) received, also 325250(4 bytes) was also received prior to that, replied with 325254 altogether
+
+[Trace] 13339028265 SEQ: 325254, ACK: 2082658116, 1024 to 9999, w: 65535, p: 1356, ctrlFlag: 10000
+[Trace] 13339035882 SEQ: 326610, ACK: 2082658116, 1024 to 9999, w: 65535, p: 8, ctrlFlag: 10000
+[Trace] 13339131894 SEQ: 2082658116, ACK: 325254, 9999 to 1024, w: 65535, p: 0, ctrlFlag: 10000
+[Trace] 13357574064 SEQ: 2082658116, ACK: 326618, 9999 to 1024, w: 65535, p: 0, ctrlFlag: 10000
+[Trace] 13357748400 SEQ: 326618, ACK: 2082658116, 1024 to 9999, w: 65535, p: 1356, ctrlFlag: 10000
+[Trace] 13357756589 SEQ: 327974, ACK: 2082658116, 1024 to 9999, w: 65535, p: 12, ctrlFlag: 10000
+[Trace] 13358694778 SEQ: 2082658116, ACK: 326618, 9999 to 1024, w: 65535, p: 0, ctrlFlag: 10000
+[Trace] 13358790070 SEQ: 2082658116, ACK: 327986, 9999 to 1024, w: 64167, p: 0, ctrlFlag: 10000
+[Trace] 13360018961 SEQ: 327986, ACK: 2082658116, 1024 to 9999, w: 65535, p: 1356, ctrlFlag: 10000
+
+                ... Log Ommitted, similar trend continues  ...
+
+[Trace] 20930957432 SEQ: 1070595, ACK: 2082658116, 1024 to 9999, w: 65535, p: 22, ctrlFlag: 10000
+[Trace] 20931133407 SEQ: 2082658116, ACK: 1070617, 9999 to 1024, w: 64157, p: 0, ctrlFlag: 10000
+[Trace] 20931211314 SEQ: 2082658116, ACK: 1069239, 9999 to 1024, w: 64157, p: 0, ctrlFlag: 10000
+[Trace] 20931313636 SEQ: 1070617, ACK: 2082658116, 1024 to 9999, w: 65535, p: 563, ctrlFlag: 10000
+[Trace] 20931442236 SEQ: 2082658116, ACK: 1071180, 9999 to 1024, w: 65535, p: 0, ctrlFlag: 10000
+[Trace] 20931449228 SEQ: 1071180, ACK: 2082658116, 1024 to 9999, w: 65535, p: 0, ctrlFlag: 10001
+    // FIN received
+
+[Trace] 20931568688 SEQ: 2082658117, ACK: 1071181, 9999 to 1024, w: 65535, p: 0, ctrlFlag: 10000
+    // ACK of FIN replied
+
+[Trace] 20931615911 SEQ: 2082658116, ACK: 1071181, 9999 to 1024, w: 65535, p: 0, ctrlFlag: 1
+    // FIN sent
+
+    // ACK of FIN was dropped
