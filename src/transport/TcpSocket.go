@@ -210,8 +210,16 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 					socket.SendCtrl(ctrl, socket.lastSentSeq+1, tcppacket.Tcpheader.SeqNum+1, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
 				}
 			}
-
+     	}
+			// if we are still receiving, we should check the seqnum first before we transit into a new state
+		if socket.StateMachine.CurrentState() == TCP_ESTAB || socket.StateMachine.CurrentState().IsActiveClose {
+			if tcppacket.Tcpheader.SeqNum != socket.RecvWindow.nextSeqNumExpected {
+				logging.Printf("Transition arrived before all data was received, seqNum %d, expected seqNum %d", tcppacket.Tcpheader.SeqNum, socket.RecvWindow.nextSeqNumExpected)
+				socket.SendCtrl(ACK, socket.lastSentSeq, socket.RecvWindow.nextSeqNumExpected, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
+				return
+			}
 		}
+
 		socket.StateMachine.Transit(event)
 		if socket.StateMachine.CurrentState() == TCP_ESTAB {
 			socket.dataSentAck = tcppacket.Tcpheader.AckNum
@@ -228,16 +236,6 @@ func (socket *TcpSocket) Recv(packet model.IpPacket) {
 			//go socket.Retransmit()
 		}
 
-		// if we are still receiving, we should check the seqnum first before we transit into a new state
-		if socket.StateMachine.CurrentState() == TCP_ESTAB || socket.StateMachine.CurrentState().IsActiveClose {
-			if tcppacket.Tcpheader.SeqNum != socket.RecvWindow.nextSeqNumExpected {
-				logging.Printf("Transition arrived before all data was received, seqNum %d, expected seqNum %d", tcppacket.Tcpheader.SeqNum, socket.RecvWindow.nextSeqNumExpected)
-				socket.SendCtrl(ACK, socket.lastSentSeq, socket.RecvWindow.nextSeqNumExpected, socket.Addr.LocalIp, socket.Addr.LocalPort, socket.Addr.RemoteIp, socket.Addr.RemotePort)
-				return
-			}
-		}
-
-		socket.StateMachine.Transit(event)
 		return
 	}
 
